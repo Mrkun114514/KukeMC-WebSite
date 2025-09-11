@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+<script>LA.init({id:"3KHLjg97pxmoUlOB",ck:"3KHLjg97pxmoUlOB"})</script>
+<script>
+  !(function(c,i,e,b){
+  var h=i.createElement("script");
+  var f=i.getElementsByTagName("script")[0];
+  h.type="text/javascript";
+  h.crossorigin=true;
+  h.onload=function(){new c[b]["Monitor"]().init({id:"3MZgcESuGaKEZn2w",sendSuspicious:true,sendSpaPv:true});};
+  f.parentNode.insertBefore(h,f);h.src=e;})(window,document,"https://sdk.51.la/perf/js-sdk-perf.min.js","LingQue");
+</script>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="referrer" content="no-referrer">
+    
+    <!-- Website Title -->
+    <title>封禁列表-KukeMC-我的世界服务器(Minecraft)</title>
+    <meta name="keywords" content="我的世界服务器,Minecraft服务器,趣味生存,原版生电,起床战争,职业战争,粘液科技,RPG,小游戏" />
+    <meta name="description" content="KukeMC服务器封禁列表" />
+    
+    <!-- Styles -->
+    <link href="static/css/animations.css" rel="stylesheet">
+    <link href="static/css/bootstrap.css" rel="stylesheet">
+    <link href="static/css/base.css" rel="stylesheet">
+    <link href="static/css/components.css" rel="stylesheet">
+    <link href="static/css/layout.css" rel="stylesheet">
+    <link href="static/css/navigation.css" rel="stylesheet">
+    <link href="static/css/utilities.css" rel="stylesheet">
+    <link href="static/css/responsive.css" rel="stylesheet">
+    <link href="static/css/banlist.css" rel="stylesheet">
+    
+    <!-- Favicon  -->
+    <link rel="icon" href="https://m.ccw.site/gandi_application/user_assets/2a6bb37880317d2bb5525ab560618e04.png">
+</head>
+<body data-spy="scroll" data-target=".fixed-top">
+    <!-- Preloader -->
+    <div class="spinner-wrapper">
+        <div class="spinner">
+            <div class="bounce1"></div>
+            <div class="bounce2"></div>
+            <div class="bounce3"></div>
+        </div>
+    </div>
+    <!-- end of preloader -->
+    <!-- Navbar -->
+    <div id="navbar"></div>
+    <!-- Header -->
+    <header id="header" class="ex-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h1>KukeMC - 封禁列表</h1>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- end of header -->
+    <!-- Breadcrumbs -->
+    <div class="ex-basic-1">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="breadcrumbs">
+                        <a href="index.html">首页</a><span>&nbsp;&nbsp;>&nbsp;&nbsp;封禁名单</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end of breadcrumbs -->
+    <!-- Terms Content -->
+    <div class="ex-basic-2">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="text-container">
+                        <h1>封禁名单</h1>
+                        <p>以下为 KukeMC 服务器封禁名单，如有任何疑问请联系管理员。</p>
+                        
+                        <!-- 添加搜索框 -->
+                        <div style="margin-bottom: 20px;">
+                            <input type="text" id="searchInput" placeholder="搜索玩家名称..." style="padding: 8px; width: 300px; border: 1px solid #ddd; border-radius: 4px;">
+                            <button id="searchButton" style="padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">搜索</button>
+                            <button id="resetButton" style="padding: 8px 15px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 5px;">重置</button>
+                        </div>
+
+                        <div id="loadingIndicator" style="text-align: center; margin: 20px;">
+                            <p>正在加载封禁列表，请稍候...</p>
+                        </div>
+
+                        <table id="banListTable" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>类型</th>
+                                    <th>玩家</th>
+                                    <th>处理者</th>
+                                    <th>原因</th>
+                                    <th>处理日期</th>
+                                    <th>过期时间</th>
+                                    <th>处罚范围</th>
+                                </tr>
+                            </thead>
+                            <tbody id="banListBody">
+                            </tbody>
+                        </table>
+                        <div class="pagination-container">
+                            <nav style="padding: 12px;">
+                                <ul class="pagination" id="pagination">
+                                    <!-- Pagination will be generated by JavaScript -->
+                                </ul>
+                            </nav>
+                        </div>
+                        <br><br><br><br><br><br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end of terms content -->
+    <!-- Footer -->
+    <div id="footer"></div>
+    <!-- end of copyright -->
+    <!-- Scripts -->
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script> <!-- jQuery for Bootstrap's JavaScript plugins -->
+    <script src="https://m.ccw.site/gandi_application/user_assets/e1d98d47689e00f8ecbc5d9f61bdb42e.js"></script>
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/jquery-easing/1.4.1/jquery.easing.min.js"></script> <!-- jQuery Easing for smooth scrolling between anchors -->
+    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/Swiper/8.0.6/swiper-bundle.min.js"></script> <!-- Swiper for image and text sliders -->
+    <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/magnific-popup.js/1.1.0/jquery.magnific-popup.min.js"></script> <!-- Magnific Popup for lightboxes -->
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-1-M/Morphext/2.4.4/morphext.min.js"></script> <!-- Morphtext rotating text in the header -->
+    <script crossorigin="anonymous" integrity="sha384-8CYhPwYlLELodlcQV713V9ZikA3DlCVaXFDpjHfP8Z36gpddf/Vrt47XmKDsCttu" src="static/js/clipboard.min.js"></script>
+    <script src="static/js/js.js"></script>
+    <script src="static/js/scripts.js"></script>
+    <script src="static/js/banlist.js"></script> <!-- Banlist scripts -->
+</body>
+</html>

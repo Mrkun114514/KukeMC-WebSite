@@ -1,0 +1,174 @@
+{
+  "sponsors": [
+    {
+      "date": "2025.08.04",
+      "name": "shadow_agent404",
+      "amount": 15.20,
+      "message": "非常感谢！",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2025.07.29",
+      "name": "nsoer",
+      "amount": 10,
+      "message": "非常感谢！",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2025.07.21",
+      "name": "Auroed",
+      "nameColor": "orange",
+      "amount": 100,
+      "amountColor": "gold",
+      "message": "非常感谢!!!!!!!!",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2025.06.26",
+      "name": "tzi_aZbLA_0716",
+      "link": "https://afdian.com/a/tzi_aZbLA_0716",
+      "amount": 65,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2025.06.13",
+      "name": "加油",
+      "amount": 15,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2025.06.13",
+      "name": "tzi_aZbLA_0716",
+      "link": "https://afdian.com/a/tzi_aZbLA_0716",
+      "amount": 40,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2025.06.13",
+      "name": "zilinkids",
+      "amount": 20,
+      "message": "非常感谢！",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2025.04.04",
+      "name": "斩云Leonard",
+      "amount": 10,
+      "message": "非常感谢！",
+      "platform": "QQ"
+    },
+    {
+      "date": "2025.04.04",
+      "name": "tzi_aZbLA_0716",
+      "link": "https://afdian.com/a/tzi_aZbLA_0716",
+      "amount": 35,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2025.03.31",
+      "name": "zilinkids",
+      "amount": 15,
+      "message": "非常感谢！",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2025.03.22",
+      "name": "rheostats",
+      "nameColor": "orange",
+      "amount": 200,
+      "amountColor": "gold",
+      "message": "非常感谢!!!!!!!!",
+      "platform": "Alipay"
+    },
+    {
+      "date": "2025.02.13",
+      "name": "一只chara",
+      "amount": 20,
+      "message": "非常感谢！",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2025.01.18",
+      "name": "执念鱼",
+      "amount": 9.99,
+      "message": "非常感谢！",
+      "platform": "WeChat"
+    },
+    {
+      "date": "2024.12.26",
+      "name": "椰灰狼",
+      "nameColor": "orange",
+      "link": "https://space.bilibili.com/527135437",
+      "amount": 100,
+      "amountColor": "gold",
+      "message": "非常感谢!!!!!!!!",
+      "platform": "afdian"
+    },
+    {
+      "date": "2024.12.26",
+      "name": "椰灰狼",
+      "nameColor": "orange",
+      "link": "https://space.bilibili.com/3546795693050045",
+      "amount": 200,
+      "amountColor": "gold",
+      "message": "非常感谢!!!!!!!!",
+      "platform": "afdian"
+    },
+    {
+      "date": "2024.12.26",
+      "name": "tzi_aZbLA_0716",
+      "link": "https://afdian.com/a/tzi_aZbLA_0716",
+      "amount": 70,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2024.12.26",
+      "name": "[匿名]",
+      "amount": 50,
+      "message": "非常感谢！",
+      "platform": "Alipay"
+    },
+    {
+      "date": "2024.11.24",
+      "name": "tzi_aZbLA_0716",
+      "link": "https://afdian.com/a/tzi_aZbLA_0716",
+      "amount": 65,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2024.11.22",
+      "name": "tzi_aZbLA_0716",
+      "link": "https://afdian.com/a/tzi_aZbLA_0716",
+      "amount": 35,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    },
+    {
+      "date": "2023.09.24",
+      "name": "[匿名]",
+      "amount": 24,
+      "message": "非常感谢！",
+      "platform": "afdian"
+    }
+  ],
+  "donate": {
+    "text": "捐赠的所有收入将全部用于维护服务器！",
+    "link": "https://afdian.com/a/kukemc",
+    "images": [
+      {
+        "src": "https://m.ccw.site/gandi_application/user_assets/7ebd7661e9bc19c088de1b7825673b57.jpg",
+        "name": "微信支付"
+      },
+      {
+        "src": "https://m.ccw.site/gandi_application/user_assets/10dd46a5d2ccabc91d2ab9ca6f11b707.jpg",
+        "name": "支付宝"
+      }
+    ]
+  }
+}

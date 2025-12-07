@@ -121,6 +121,7 @@ const TicketCenter = () => {
   
   // Support Status
   const [isSupportOnline, setIsSupportOnline] = useState(false);
+  const [onlineAdmins, setOnlineAdmins] = useState<string[]>([]);
   const [isAdminActive, setIsAdminActive] = useState(false);
 
   // Global WS
@@ -132,6 +133,7 @@ const TicketCenter = () => {
         const data = JSON.parse(event.data);
         if (data.type === 'support_status') {
           setIsSupportOnline(data.online);
+          if (data.admins) setOnlineAdmins(data.admins);
         }
       } catch (e) { console.error(e); }
     };
@@ -164,29 +166,55 @@ const TicketCenter = () => {
   const [ticketDetail, setTicketDetail] = useState<{ item: Ticket, logs: TicketLog[] } | null>(null);
 
   // Chat WS
+  const wsRef = useRef<WebSocket | null>(null);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<any>(null);
+
   useEffect(() => {
     if (!selectedTicketId) return;
     const ws = new WebSocket(getWsUrl(`/api/feedback/ws/chat/${selectedTicketId}`));
+    wsRef.current = ws;
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         
         if (data.type === 'new_comment' && data.ticket_id === selectedTicketId) {
-             setTicketDetail(prev => prev ? ({ ...prev, logs: [...prev.logs, data.log] }) : null);
+             setTicketDetail(prev => {
+                 if (!prev) return null;
+                 // Remove matching temp logs (optimistic UI)
+                 const cleanLogs = prev.logs.filter(l => {
+                     const isTemp = l.id > 1000000000000; // Timestamp based ID
+                     if (isTemp && l.actor === data.log.actor && l.message === data.log.message) return false;
+                     return true;
+                 });
+                 // Dedup real logs
+                 if (cleanLogs.some(l => l.id === data.log.id)) return prev;
+                 return { ...prev, logs: [...cleanLogs, data.log] };
+             });
+             if (data.log.actor === typingUser) setTypingUser(null);
         } else if (data.type === 'status_change' && data.ticket_id === selectedTicketId) {
              setTicketDetail(prev => prev ? ({ ...prev, item: { ...prev.item, status: data.status }, logs: [...prev.logs, data.log] }) : null);
              setTickets(prev => prev.map(t => t.id === selectedTicketId ? { ...t, status: data.status } : t));
         } else if (data.type === 'assign' && data.ticket_id === selectedTicketId) {
              setTicketDetail(prev => prev ? ({ ...prev, item: { ...prev.item, resolver: data.resolver }, logs: [...prev.logs, data.log] }) : null);
+        } else if (data.type === 'typing' && data.ticket_id === selectedTicketId) {
+            if (data.user !== user?.username) {
+                setTypingUser(data.user);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => setTypingUser(null), 3000);
+            }
         }
       } catch (e) { console.error(e); }
     };
-    return () => ws.close();
-  }, [selectedTicketId]);
+    return () => {
+        ws.close();
+        wsRef.current = null;
+    };
+  }, [selectedTicketId, user]); // Removed typingUser from deps to avoid re-bind
 
   const [detailLoading, setDetailLoading] = useState(false);
   const [replyContent, setReplyContent] = useState('');
-  const [sendingReply, setSendingReply] = useState(false);
 
   // Create Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -301,27 +329,54 @@ const TicketCenter = () => {
     }
   };
 
+  const lastTypingTime = useRef(0);
+  const handleTyping = (value: string) => {
+      setReplyContent(value);
+      const now = Date.now();
+      if (now - lastTypingTime.current > 2000 && wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'typing', user: user?.username }));
+          lastTypingTime.current = now;
+      }
+  };
+
   const handleReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (!replyContent.trim() || !selectedTicketId) return;
 
-    setSendingReply(true);
-    try {
-      const res = await api.post('/api/feedback/comment', {
+    // Optimistic Update
+    const tempId = Date.now();
+    const tempLog: TicketLog = {
+        id: tempId,
         ticket_id: selectedTicketId,
+        actor: user.username,
+        action: 'comment',
         message: replyContent,
+        created_at: new Date().toISOString()
+    };
+    
+    setTicketDetail(prev => prev ? ({ ...prev, logs: [...prev.logs, tempLog] }) : null);
+    const contentToSend = replyContent;
+    setReplyContent('');
+
+    // Send via WS (as requested)
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'comment', message: contentToSend, user: user.username }));
+    }
+
+    try {
+      await api.post('/api/feedback/comment', {
+        ticket_id: selectedTicketId,
+        message: contentToSend,
         user: user.username,
         player_name: user.username
       });
-      if (res.data.ok) {
-        setReplyContent('');
-        // WS will update logs
-      }
+      // Success - WS will handle sync
     } catch (err: any) {
+      // Revert on failure
+      setTicketDetail(prev => prev ? ({ ...prev, logs: prev.logs.filter(l => l.id !== tempId) }) : null);
+      setReplyContent(contentToSend);
       alert(err.response?.data?.detail || "回复失败");
-    } finally {
-      setSendingReply(false);
     }
   };
 
@@ -363,10 +418,13 @@ const TicketCenter = () => {
     statusFilter === 'all' ? true : t.status === statusFilter
   );
 
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (logsContainerRef.current) {
+      logsContainerRef.current.scrollTo({
+        top: logsContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [ticketDetail?.logs]);
 
@@ -419,18 +477,25 @@ const TicketCenter = () => {
             </p>
           </div>
           {user?.role === 'admin' && (
-            <button
-              onClick={toggleAdminStatus}
-              className={clsx(
-                "px-4 py-2 rounded-xl font-medium shadow-lg transition-all flex items-center gap-2 w-fit mr-2",
-                isAdminActive 
-                ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20" 
-                : "bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
-              )}
-            >
-              {isAdminActive ? <CheckCircle size={20} /> : <Clock size={20} />}
-              {isAdminActive ? "客服在线" : "客服离线"}
-            </button>
+            <div className="flex flex-col items-end">
+                <button
+                onClick={toggleAdminStatus}
+                className={clsx(
+                    "px-4 py-2 rounded-xl font-medium shadow-lg transition-all flex items-center gap-2 w-fit mr-2",
+                    isAdminActive 
+                    ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/20" 
+                    : "bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                )}
+                >
+                {isAdminActive ? <CheckCircle size={20} /> : <Clock size={20} />}
+                {isAdminActive ? "客服在线" : "客服离线"}
+                </button>
+                {onlineAdmins.length > 0 && (
+                    <div className="text-xs text-slate-500 mt-1 mr-2">
+                        在线: {onlineAdmins.join(', ')}
+                    </div>
+                )}
+            </div>
           )}
           <button
             onClick={() => setIsCreateOpen(true)}
@@ -627,8 +692,8 @@ const TicketCenter = () => {
                 </div>
 
                 {/* Conversation Logs */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-black/20">
-                  {ticketDetail.logs.map((log) => {
+                <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 dark:bg-black/20">
+                  {ticketDetail.logs.map((log, index) => {
                     const isMe = user && log.actor === user.username;
                     const isSystem = ['assign', 'update_status', 'create'].includes(log.action);
                     
@@ -664,25 +729,38 @@ const TicketCenter = () => {
                     }
 
                     const formattedMessage = formatLogMessage(log.message);
+                    
+                    // Grouping Logic
+                    const prevLog = ticketDetail.logs[index - 1];
+                    const isSameUser = prevLog && prevLog.actor === log.actor && prevLog.action === 'comment' && !['assign', 'update_status', 'create'].includes(prevLog.action);
 
                     return (
-                      <div key={log.id} className={clsx("flex gap-3 w-full", isMe ? "flex-row-reverse" : "")}>
+                      <div key={log.id} className={clsx("flex gap-3 w-full", isMe ? "flex-row-reverse" : "", isSameUser ? "mt-1" : "mt-4")}>
                          <div className={clsx(
-                           "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold shadow-sm",
-                           isMe ? "bg-brand-500" : "bg-blue-500"
+                           "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm bg-slate-200",
+                           isSameUser ? "invisible" : ""
                          )}>
-                           {log.actor[0].toUpperCase()}
+                           <img 
+                                src={`https://minotar.net/helm/${log.actor}/32`} 
+                                alt={log.actor}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${log.actor}&background=random`;
+                                }}
+                           />
                          </div>
                          <div className={clsx("max-w-[80%] min-w-0 flex flex-col", isMe ? "items-end" : "items-start")}>
-                           <div className={clsx("text-xs text-slate-500 mb-1 ml-1 flex items-center gap-1.5", isMe ? "mr-1 justify-end" : "ml-1 justify-start")}>
-                             <span className="font-medium">{log.actor}</span>
-                             {!isMe && (
-                               <span className="bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400 text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 font-medium border border-brand-200 dark:border-brand-800">
-                                 <ShieldCheck size={10} />
-                                 管理员
-                               </span>
-                             )}
-                           </div>
+                           {!isSameUser && (
+                               <div className={clsx("text-xs text-slate-500 mb-1 ml-1 flex items-center gap-1.5", isMe ? "mr-1 justify-end" : "ml-1 justify-start")}>
+                                 <span className="font-medium">{log.actor}</span>
+                                 {log.actor !== ticketDetail.item.player_name && (
+                                   <span className="bg-brand-100 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400 text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1 font-medium border border-brand-200 dark:border-brand-800">
+                                     <ShieldCheck size={10} />
+                                     管理员
+                                   </span>
+                                 )}
+                               </div>
+                           )}
                            <div className={clsx(
                              "p-3 rounded-2xl text-sm shadow-sm break-words whitespace-pre-wrap w-fit",
                              isMe ? "bg-brand-500 text-white rounded-tr-none" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none"
@@ -696,7 +774,21 @@ const TicketCenter = () => {
                       </div>
                     );
                   })}
-                  <div ref={logsEndRef} />
+                  
+                  {typingUser && (
+                      <div className="flex gap-3 w-full mt-4">
+                           <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm bg-slate-200">
+                                <img src={`https://minotar.net/helm/${typingUser}/32`} className="w-full h-full" />
+                           </div>
+                           <div className="flex flex-col items-start">
+                                <div className="text-xs text-slate-500 mb-1 ml-1 font-medium">{typingUser}</div>
+                                <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none text-slate-500 text-sm flex items-center gap-2">
+                                     <Loader2 size={14} className="animate-spin" />
+                                     正在输入...
+                                </div>
+                           </div>
+                      </div>
+                  )}
                 </div>
 
                 {/* Reply Input */}
@@ -711,15 +803,15 @@ const TicketCenter = () => {
                       <div className="flex-shrink-0 mb-[2px]">
                           <ImageUpload 
                              onUploadComplete={(url) => setReplyContent(prev => prev + (prev ? '\n' : '') + `![图片](${url})`)} 
-                             disabled={sendingReply || ticketDetail.item.status === 'resolved' || ticketDetail.item.status === 'rejected'}
+                             disabled={ticketDetail.item.status === 'resolved' || ticketDetail.item.status === 'rejected'}
                           />
                       </div>
                       
                       <textarea
                           value={replyContent}
-                          onChange={(e) => setReplyContent(e.target.value)}
+                          onChange={(e) => handleTyping(e.target.value)}
                           placeholder={(ticketDetail.item.status === 'resolved' || ticketDetail.item.status === 'rejected') ? "此工单已结束，如有新问题请提交新工单" : "输入回复内容..."}
-                          disabled={sendingReply || ticketDetail.item.status === 'resolved' || ticketDetail.item.status === 'rejected'}
+                          disabled={ticketDetail.item.status === 'resolved' || ticketDetail.item.status === 'rejected'}
                           rows={1}
                           onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
@@ -727,7 +819,7 @@ const TicketCenter = () => {
                                   handleReply(e);
                               }
                           }}
-                          className="flex-1 bg-transparent border-none focus:ring-0 p-3 min-h-[48px] max-h-[200px] resize-none text-sm text-slate-900 dark:text-white placeholder:text-slate-400 leading-relaxed"
+                          className="flex-1 bg-transparent border-none focus:ring-0 outline-none p-3 min-h-[48px] max-h-[200px] resize-none text-sm text-slate-900 dark:text-white placeholder:text-slate-400 leading-relaxed"
                           style={{ height: 'auto', overflow: 'hidden' }} 
                           onInput={(e) => {
                               const target = e.target as HTMLTextAreaElement;
@@ -737,15 +829,18 @@ const TicketCenter = () => {
                           }}
                        />
 
-                      <div className="flex-shrink-0 mb-[2px]">
-                        <button
-                          type="submit"
-                          disabled={!replyContent.trim() || sendingReply}
-                          className="p-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl disabled:opacity-50 disabled:hover:bg-brand-500 transition-colors shadow-sm flex items-center justify-center"
-                        >
-                          {sendingReply ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-                        </button>
-                      </div>
+                      <button
+                        type="submit"
+                        disabled={!replyContent.trim()}
+                        className={clsx(
+                          "p-3 rounded-xl flex-shrink-0 transition-all mb-[2px]",
+                          !replyContent.trim()
+                            ? "bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
+                            : "bg-brand-500 text-white hover:bg-brand-600 shadow-lg shadow-brand-500/20 active:scale-95"
+                        )}
+                      >
+                        <Send size={20} />
+                      </button>
                     </div>
                   </form>
                 </div>

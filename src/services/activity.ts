@@ -29,6 +29,11 @@ export const createPost = async (data: CreatePostDTO) => {
   return response.data;
 };
 
+export const updatePost = async (id: number, data: Partial<CreatePostDTO>) => {
+  const response = await api.put<Post>(`/api/posts/${id}`, data);
+  return response.data;
+};
+
 export const deletePost = async (id: number) => {
   const response = await api.delete(`/api/posts/${id}`);
   return response.data;

@@ -3,6 +3,7 @@ import { useTitle } from '../hooks/useTitle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Check, Copy, RefreshCw, AlertCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
+import api, { generateUploadHeaders } from '../utils/api';
 
 const Skin = () => {
   useTitle('皮肤上传-KukeMC-我的世界服务器(Minecraft)');
@@ -45,6 +46,11 @@ const Skin = () => {
       setError('请上传有效的图片文件 (PNG, JPG)');
       return;
     }
+    // Limit file size to 1MB
+    if (selectedFile.size > 1 * 1024 * 1024) {
+      setError('皮肤图片大小不能超过 1MB');
+      return;
+    }
     setFile(selectedFile);
   };
 
@@ -55,22 +61,20 @@ const Skin = () => {
     setError(null);
 
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('file', file);
 
     try {
-      const response = await fetch('https://img-api.kuke.ink/raw', {
-        method: 'POST',
-        body: formData,
+      const securityHeaders = await generateUploadHeaders();
+      const response = await api.post('/api/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...securityHeaders
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('上传失败，请稍后重试');
-      }
-
-      const imageUrl = await response.text();
-      setUploadedUrl(imageUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '发生未知错误');
+      setUploadedUrl(response.data.url);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || '上传失败');
     } finally {
       setIsUploading(false);
     }

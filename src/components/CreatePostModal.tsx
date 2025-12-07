@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Loader2, Send, Flame } from 'lucide-react';
+import { X, Loader2, Send, Flame, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MarkdownEditor from './MarkdownEditor';
-import { createPost, getHotTopics } from '../services/activity';
+import { createPost, updatePost, getHotTopics } from '../services/activity';
+import { updateAlbum } from '../services/album';
+import { Post } from '../types/activity';
 
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (newPost: any) => void;
+  post?: Post; // If provided, we are in edit mode
 }
 
-const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess, post }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   
@@ -25,8 +28,28 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isEditing = !!post;
+  const isAlbum = post?.type === 'album';
+
+  // Initialize state when opening or post changes
+  useEffect(() => {
+    if (isOpen && post) {
+      setTitle(post.title);
+      setContent(post.content);
+      setTags(post.tags || []);
+    } else if (isOpen && !post) {
+      // Reset for create mode
+      setTitle('');
+      setContent('');
+      setTags([]);
+      setTagInput('');
+    }
+  }, [isOpen, post]);
+
   // Fetch suggestions when input changes (debounced ideally, but for now direct)
   useEffect(() => {
+    if (isAlbum) return; // No tags for albums
+
     const fetchSuggestions = async () => {
         try {
             // Always fetch if focused, but maybe filter by input
@@ -43,7 +66,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
         const timer = setTimeout(fetchSuggestions, 300);
         return () => clearTimeout(timer);
     }
-  }, [tagInput, tags, isOpen]);
+  }, [tagInput, tags, isOpen, isAlbum]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -89,15 +112,41 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
     setIsSubmitting(true);
     setError(null);
     try {
-      // Extract tags from content if any
-      const contentTags = (content.match(/#[^\s#.,;!?，。！？]+/g) || [])
-        .map(t => t.replace(/^#/, ''));
-        
-      // Merge unique tags
-      const finalTags = Array.from(new Set([...tags, ...contentTags]));
+      let result;
+      
+      if (isEditing && post) {
+        if (isAlbum) {
+            // Update Album
+            result = await updateAlbum(post.id, {
+                title,
+                description: content // Map content to description
+            });
+        } else {
+            // Update Post
+            // Extract tags from content if any
+            const contentTags = (content.match(/#[^\s#.,;!?，。！？]+/g) || [])
+                .map(t => t.replace(/^#/, ''));
+            // Merge unique tags
+            const finalTags = Array.from(new Set([...tags, ...contentTags]));
 
-      const newPost = await createPost({ title, content, tags: finalTags });
-      onSuccess(newPost);
+            result = await updatePost(post.id, {
+                title,
+                content,
+                tags: finalTags
+            });
+        }
+      } else {
+        // Create Post
+        // Extract tags from content if any
+        const contentTags = (content.match(/#[^\s#.,;!?，。！？]+/g) || [])
+            .map(t => t.replace(/^#/, ''));
+        // Merge unique tags
+        const finalTags = Array.from(new Set([...tags, ...contentTags]));
+
+        result = await createPost({ title, content, tags: finalTags });
+      }
+
+      onSuccess(result);
       
       // Reset form
       setTitle('');
@@ -106,12 +155,16 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
       setTagInput('');
       onClose();
     } catch (err) {
-      setError('发布失败，请重试');
+      setError(isEditing ? '更新失败，请重试' : '发布失败，请重试');
       console.error(err);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const modalTitle = isEditing 
+    ? (isAlbum ? '编辑相册' : '编辑动态') 
+    : '发布动态';
 
   return (
     <AnimatePresence>
@@ -133,7 +186,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
           >
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">发布动态</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{modalTitle}</h2>
                 <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
                   <X size={24} />
                 </button>
@@ -156,12 +209,13 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="给你的动态起个标题..."
+                        placeholder={isAlbum ? "相册标题" : "给你的动态起个标题..."}
                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400"
                         maxLength={100}
                       />
                     </div>
 
+                    {!isAlbum && (
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         标签话题 <span className="text-slate-400 font-normal text-xs ml-1">(回车添加，最多10个)</span>
@@ -241,15 +295,16 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                         </AnimatePresence>
                       </div>
                     </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        内容
+                        {isAlbum ? '描述' : '内容'}
                       </label>
                       <MarkdownEditor
                         value={content}
                         onChange={setContent}
-                        placeholder="分享你的想法... (支持Markdown和图片粘贴)"
+                        placeholder={isAlbum ? "介绍一下这个相册..." : "分享你的想法... (支持Markdown和图片粘贴)"}
                         minHeight="min-h-[300px]"
                       />
                     </div>
@@ -272,11 +327,11 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 size={18} className="animate-spin" /> 发布中...
+                        <Loader2 size={18} className="animate-spin" /> {isEditing ? '保存中...' : '发布中...'}
                       </>
                     ) : (
                       <>
-                        <Send size={18} /> 发布动态
+                        {isEditing ? <Save size={18} /> : <Send size={18} />} {isEditing ? '保存修改' : '发布动态'}
                       </>
                     )}
                   </button>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../utils/api';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import api, { generateUploadHeaders } from '../utils/api';
 import { useTitle } from '../hooks/useTitle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -35,6 +35,7 @@ interface Album {
   title: string;
   description: string | null;
   image_url: string;
+  thumbnail_url?: string; // Add thumbnail field
   likes: number;
   created_at: string;
   is_liked: boolean;
@@ -364,8 +365,18 @@ const UserListModal = ({
   );
 };
 
+const getThumbnailUrl = (url: string) => {
+  if (!url) return url;
+  // Naming convention: name.ext -> name_thumb.ext
+  const parts = url.split('.');
+  if (parts.length < 2) return url;
+  const ext = parts.pop();
+  return `${parts.join('.')}_thumb.${ext}`;
+};
+
 const Profile = () => {
   const { username } = useParams<{ username: string }>();
+  const location = useLocation();
   useTitle(`${username} 的个人主页 - KukeMC`);
   const { user, token } = useAuth();
   
@@ -424,7 +435,7 @@ const Profile = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
-  const [albumComments, setAlbumComments] = useState<AlbumComment[]>([]);
+  const [albumComments, setAlbumComments] = useState<any[]>([]); // Relaxed type to avoid crash if model mismatches
   const [newComment, setNewComment] = useState('');
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [isSendingComment, setIsSendingComment] = useState(false);
@@ -453,6 +464,14 @@ const Profile = () => {
       fetchFollowStatsData(username);
     }
   }, [username, token]); // Removed activeTab dependency
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab && ['overview', 'posts', 'collections', 'albums'].includes(tab)) {
+        setActiveTab(tab as any);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (username) {
@@ -486,25 +505,12 @@ const Profile = () => {
   const fetchUserCollections = async () => { // Removed unused 'name' param
     setPostsLoading(true);
     try {
-      // Fetch collected posts
+      // Fetch collected posts (Now returns both posts and albums)
       const postsRes = await getPosts({ is_collected: true });
       setUserCollections(postsRes.data);
       
-      // Fetch collected albums (assuming new endpoint or filter)
-      // Since we don't have backend support yet, let's simulate empty or try an endpoint
-      // We need to implement backend support for album collection list.
-      // For now, let's just use a placeholder or existing list if possible.
-      // Assuming we add /api/album/collected endpoint later.
-      // For this turn, I'll focus on UI.
-      // Actually, let's try to fetch collected albums if endpoint existed.
-      try {
-         const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-         const albumsRes = await api.get<Album[]>('/api/album/collected', config);
-         setCollectedAlbums(albumsRes.data);
-      } catch (e) {
-         console.warn("Collected albums endpoint not ready", e);
-         setCollectedAlbums([]);
-      }
+      // We don't need to fetch collected albums separately anymore as getPosts returns mixed content
+      setCollectedAlbums([]); 
 
       setTabDataCache(prev => ({ ...prev, collections: { data: postsRes.data, loaded: true } }));
     } catch (error) {
@@ -584,37 +590,34 @@ const Profile = () => {
 
       // 1. Upload Image First
       const imageFormData = new FormData();
-      imageFormData.append('image', fileToUpload); 
+      imageFormData.append('file', fileToUpload); 
       
-      const uploadRes = await fetch('https://img-api.kuke.ink/raw', {
-         method: 'POST',
-         body: imageFormData
+      const securityHeaders = await generateUploadHeaders();
+
+      // Use internal API for upload
+      const uploadRes = await api.post('/api/upload/image', imageFormData, {
+         headers: {
+            'Content-Type': 'multipart/form-data',
+            ...securityHeaders
+            // Token will be added by interceptor if available, but manual add is also fine if needed.
+            // But api.ts interceptor handles it.
+         }
       });
       
-      if (!uploadRes.ok) {
-        throw new Error('图片上传失败');
-      }
-      
-      const imageUrl = await uploadRes.text();
+      const imageUrl = uploadRes.data.url;
+      const thumbnailUrl = uploadRes.data.thumbnail_url;
       
       // 2. Create Album Entry
       await api.post('/api/album/upload', {
         title: uploadForm.title,
         description: uploadForm.description,
-        image_url: imageUrl
+        image_url: imageUrl,
+        thumbnail_url: thumbnailUrl
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 3. Sync to Activity (Dynamic)
-      try {
-        await createPost({
-            title: uploadForm.title,
-            content: (uploadForm.description || '') + `\n\n![${uploadForm.title}](${imageUrl})`
-        });
-      } catch (e) {
-          console.error("Failed to sync to activity", e);
-      }
+      // 3. Removed Activity Sync (Backend handles it now via unified feed)
 
       closeUploadModal();
       if (username) fetchAlbums(username);
@@ -690,14 +693,18 @@ const Profile = () => {
   const openAlbumDetail = async (album: Album) => {
     setSelectedAlbum(album);
     setIsCommentLoading(true);
+    // Reset comments to empty array to avoid stale state or undefined issues
+    setAlbumComments([]);
     try {
       const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
       const res = await api.get(`/api/album/${album.id}`, config);
-      setAlbumComments(res.data.comments);
+      // Ensure comments is an array
+      setAlbumComments(Array.isArray(res.data.comments) ? res.data.comments : []);
       // Update album info in case likes changed
       setSelectedAlbum(prev => prev ? { ...prev, ...res.data } : null);
     } catch (err) {
       console.error(err);
+      setAlbumComments([]); // Ensure it's an array on error too
     } finally {
       setIsCommentLoading(false);
     }
@@ -771,7 +778,18 @@ const Profile = () => {
       const res = await api.post(`/api/album/${selectedAlbum.id}/comment`, { content: newComment }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setAlbumComments(prev => [...prev, res.data.data]);
+      
+      if (res.data.data) {
+         setAlbumComments(prev => [...(prev || []), res.data.data]);
+      } else {
+         // Fallback if backend doesn't return data (should not happen with updated backend)
+         // Maybe refetch or just ignore
+         // For safety, let's refetch details to get the new comment
+         const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+         const detailRes = await api.get(`/api/album/${selectedAlbum.id}`, config);
+         setAlbumComments(Array.isArray(detailRes.data.comments) ? detailRes.data.comments : []);
+      }
+      
       setNewComment('');
       // Update comment count in list
       setAlbums(prev => prev.map(a => a.id === selectedAlbum.id ? { ...a, comment_count: a.comment_count + 1 } : a));
@@ -1735,10 +1753,10 @@ const Profile = () => {
                   <div className="flex justify-center py-12">
                     <Loader2 size={32} className="animate-spin text-emerald-500" />
                   </div>
-                ) : userPosts.length > 0 ? (
+                ) : userPosts && userPosts.length > 0 ? (
                   userPosts.map(post => (
                     <PostCard 
-                      key={post.id} 
+                      key={`${post.type || 'post'}-${post.id}`} 
                       post={post} 
                       onUpdate={handlePostUpdate}
                       onDelete={handlePostDelete}
@@ -1765,7 +1783,7 @@ const Profile = () => {
                    <div className="flex justify-center py-12 col-span-full">
                     <Loader2 size={32} className="animate-spin text-emerald-500" />
                   </div>
-                ) : (userCollections.length === 0 && collectedAlbums.length === 0) ? (
+                ) : ((userCollections?.length || 0) === 0 && (collectedAlbums?.length || 0) === 0) ? (
                   <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 col-span-full">
                     <p className="text-slate-500">暂时没有收藏的内容</p>
                   </div>
@@ -1773,8 +1791,9 @@ const Profile = () => {
                   <>
                   {/* Merge and Sort Collections */}
                   {[
-                    ...userCollections.map(post => ({ type: 'post' as const, data: post, date: post.created_at })),
-                    ...collectedAlbums.map(album => ({ type: 'album' as const, data: album, date: album.created_at }))
+                    ...(userCollections || []).map(item => ({ type: (item.type || 'post') as 'post' | 'album', data: item, date: item.created_at })),
+                    // collectedAlbums should be empty now as we unified fetching, but keeping logic compatible
+                    ...(collectedAlbums || []).map(album => ({ type: 'album' as const, data: album, date: album.created_at }))
                   ]
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .map((item, idx) => (
@@ -1853,7 +1872,7 @@ const Profile = () => {
                         </Link>
                       ) : (
                         /* Album Card - Fixed aspect ratio */
-                        <div className="group relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 cursor-pointer border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all h-full flex flex-col aspect-square">
+                        <div className="group relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 cursor-pointer border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all h-full flex flex-col aspect-square" onClick={() => openAlbumDetail(item.data as Album)}>
                            <div className="relative h-[75%] overflow-hidden flex-shrink-0">
                              {/* Type Badge */}
                              <div className="absolute top-2 right-2 z-10">
@@ -1864,9 +1883,13 @@ const Profile = () => {
                              </div>
 
                              <img 
-                              src={(item.data as Album).image_url} 
+                              src={getThumbnailUrl((item.data as Album).image_url)} 
                               alt={(item.data as Album).description || (item.data as Album).title} 
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                              onError={(e) => {
+                                // Fallback to original image if thumbnail fails
+                                (e.target as HTMLImageElement).src = (item.data as Album).image_url;
+                              }}
                             />
                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                                <h4 className="text-white font-bold text-sm line-clamp-1 mb-1">{(item.data as Album).title}</h4>
@@ -1877,16 +1900,18 @@ const Profile = () => {
                            <div className="p-3 bg-white dark:bg-slate-900 flex items-center justify-between flex-1 border-t border-slate-100 dark:border-slate-800">
                               <div className="flex items-center gap-2 min-w-0">
                                  <img 
-                                    src={`https://cravatar.eu/helmavatar/${(item.data as Album).username}/24.png`} 
+                                    src={`https://cravatar.eu/helmavatar/${(item.data as any).author?.username || (item.data as Album).username}/24.png`} 
                                     className="w-5 h-5 rounded-full flex-shrink-0"
-                                    alt={(item.data as Album).username}
+                                    alt={(item.data as any).author?.username || (item.data as Album).username}
                                  />
-                                 <span className="text-xs text-slate-500 truncate">{(item.data as Album).username}</span>
+                                 <span className="text-xs text-slate-500 truncate">
+                                   {(item.data as any).author?.nickname || (item.data as any).author?.username || (item.data as Album).username}
+                                 </span>
                               </div>
                               <div className="flex items-center gap-3 text-xs text-slate-400 flex-shrink-0">
                                  <span className="flex items-center gap-1">
                                    <Heart size={12} className={clsx((item.data as Album).is_liked && "fill-red-500 text-red-500")} />
-                                   {(item.data as Album).likes}
+                                   {(item.data as any).likes_count !== undefined ? (item.data as any).likes_count : (item.data as Album).likes}
                                  </span>
                               </div>
                            </div>
@@ -1967,10 +1992,13 @@ const Profile = () => {
                         >
                            <div className="relative aspect-auto overflow-hidden">
                              <img 
-                               src={album.image_url} 
+                               src={getThumbnailUrl(album.image_url)} 
                                alt={album.title}
                                className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
                                loading="lazy"
+                               onError={(e) => {
+                                 (e.target as HTMLImageElement).src = album.image_url;
+                               }}
                              />
                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                            </div>
@@ -2426,7 +2454,7 @@ const Profile = () => {
                         <div className="flex justify-center py-8">
                            <Loader2 size={24} className="text-purple-500 animate-spin" />
                         </div>
-                     ) : albumComments.length === 0 ? (
+                     ) : !albumComments || albumComments.length === 0 ? (
                         <div className="text-center py-8 text-slate-500">
                            <p>暂无评论，快来抢沙发~</p>
                         </div>

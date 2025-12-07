@@ -417,36 +417,32 @@ const Messages = () => {
         {/* Main Posting Area */}
         <div className="mb-8">
           {user ? (
-            <div className="glass-panel p-1 rounded-2xl bg-white/40 dark:bg-slate-900/40 border border-white/20 shadow-xl shadow-emerald-500/5">
-              <form onSubmit={handlePost} className="relative group">
-                <div className="absolute left-4 top-4 w-10 h-10 rounded-xl overflow-hidden ring-2 ring-white/20 shadow-md">
-                  <img
-                    src={`https://cravatar.eu/helmavatar/${user.username}/128.png`}
-                    alt={user.username}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                       (e.target as HTMLImageElement).src = 'https://cravatar.eu/helmavatar/MHF_Steve/128.png';
-                    }}
-                  />
-                </div>
-                <div className="relative">
+            <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+              <form onSubmit={handlePost}>
                   <MentionInput
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
                     placeholder={`以 ${user.username} 的身份留言...`}
-                    className="w-full pl-16 pr-4 py-6 bg-transparent rounded-xl text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:bg-white/50 dark:focus:bg-black/10 transition-all resize-none min-h-[100px]"
+                    className="w-full bg-transparent border-none resize-none focus:ring-0 focus:outline-none p-0 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 min-h-[80px]"
                   />
-                </div>
-                <div className="flex justify-end px-4 pb-4">
-                  <button
-                    type="submit"
-                    disabled={isPosting || !postContent.trim()}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-emerald-500/25 transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    {isPosting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                    <span>发布留言</span>
-                  </button>
-                </div>
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <img 
+                              src={`https://cravatar.eu/helmavatar/${user.username}/32.png`} 
+                              className="w-6 h-6 rounded bg-slate-200" 
+                              alt={user.username}
+                          />
+                          <span>以 {user.username} 身份</span>
+                      </div>
+                      <button
+                          type="submit"
+                          disabled={isPosting || !postContent.trim()}
+                          className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:opacity-50 transition-colors flex items-center gap-2"
+                      >
+                          {isPosting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                          发布
+                      </button>
+                  </div>
               </form>
             </div>
           ) : (

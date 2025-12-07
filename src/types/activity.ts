@@ -7,6 +7,7 @@ export interface Author {
 
 export interface Post {
   id: number;
+  type?: 'post' | 'album'; // Added type
   title: string;
   content: string;
   author: Author;

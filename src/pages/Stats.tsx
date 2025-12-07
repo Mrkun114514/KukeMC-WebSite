@@ -264,7 +264,7 @@ const Stats = () => {
                             </Link>
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-mono text-brand-600 dark:text-brand-300 font-medium">
+                        <td className="px-6 py-4 text-brand-600 dark:text-brand-300 font-medium">
                           {formatTime(Number(mode === 'total' ? player.total_playtime : player.recent_playtime))}
                         </td>
                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">

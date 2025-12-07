@@ -47,7 +47,11 @@ const Activity = () => {
       }
       
       setHasMore(res.data.length >= 10);
-      if (!reset) setPage(p => p + 1);
+      if (reset) {
+        setPage(2);
+      } else {
+        setPage(p => p + 1);
+      }
     } catch (error) {
       console.error(error);
     } finally {

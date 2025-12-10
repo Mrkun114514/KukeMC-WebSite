@@ -138,10 +138,18 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
             // Merge unique tags
             const finalTags = Array.from(new Set([...tags, ...contentTags]));
 
+            // Extract images from content for preview grid
+            const imageMatches = content.match(/!\[.*?\]\((.*?)\)/g) || [];
+            const images = imageMatches.map(match => {
+                const urlMatch = match.match(/\((.*?)\)/);
+                return urlMatch ? urlMatch[1] : '';
+            }).filter(url => url);
+
             result = await updatePost(post.id, {
                 title,
                 content,
-                tags: finalTags
+                tags: finalTags,
+                images
             });
         }
       } else {
@@ -152,7 +160,14 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
         // Merge unique tags
         const finalTags = Array.from(new Set([...tags, ...contentTags]));
 
-        result = await createPost({ title, content, tags: finalTags });
+        // Extract images from content for preview grid
+        const imageMatches = content.match(/!\[.*?\]\((.*?)\)/g) || [];
+        const images = imageMatches.map(match => {
+            const urlMatch = match.match(/\((.*?)\)/);
+            return urlMatch ? urlMatch[1] : '';
+        }).filter(url => url);
+
+        result = await createPost({ title, content, tags: finalTags, images });
       }
 
       onSuccess(result);

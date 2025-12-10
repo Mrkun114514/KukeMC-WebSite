@@ -1,4 +1,4 @@
-import api from '../utils/api';
+import api, { generateUploadHeaders } from '../utils/api';
 import { Post, PostListResponse, CreatePostDTO, Comment } from '../types/activity';
 
 export const getPosts = async (params: { 
@@ -64,9 +64,11 @@ export const createComment = async (postId: number, content: string, parentId?: 
 export const uploadImage = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
+  const securityHeaders = await generateUploadHeaders();
   const response = await api.post<{ url: string }>('/api/upload/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
+      ...securityHeaders,
     },
   });
   return response.data;

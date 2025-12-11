@@ -16,6 +16,8 @@ import Monitor from './pages/Monitor';
 import Thanks from './pages/Thanks';
 import Login from './pages/Login';
 import UserLevelDashboard from './pages/UserLevelDashboard';
+import ConsensusPage from './pages/Consensus';
+import ProposalDetail from './pages/ProposalDetail';
 import NotFound from './pages/NotFound';
 import LiveChat from './pages/LiveChat';
 
@@ -36,6 +38,8 @@ function App() {
           <Route path="stats" element={<Stats />} />
           <Route path="activity" element={<Activity />} />
           <Route path="activity/:id" element={<PostDetail />} />
+          <Route path="consensus" element={<ConsensusPage />} />
+          <Route path="consensus/:id" element={<ProposalDetail />} />
           <Route path="monitor" element={<Monitor />} />
           <Route path="messages" element={<Messages />} />
           <Route path="tickets" element={<TicketCenter />} />

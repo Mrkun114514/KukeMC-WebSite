@@ -4,15 +4,18 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Heart, MessageSquare, Bookmark, Share2, Trash2, Check, Edit2 } from 'lucide-react';
-import { Post } from '../types/activity';
+import { Heart, MessageSquare, Bookmark, Share2, Trash2, Check, Edit2, Send, X, Loader2 } from 'lucide-react';
+import { Post, Comment } from '../types/activity';
 import { useAuth } from '../context/AuthContext';
 import { toggleLikePost, toggleCollectPost, deletePost } from '../services/activity';
-import { toggleLikeAlbum, toggleCollectAlbum, deleteAlbum } from '../services/album';
+import { toggleLikeAlbum, toggleCollectAlbum, deleteAlbum, getAlbum, createAlbumComment } from '../services/album';
 import { followUser, unfollowUser } from '../services/follow';
 import clsx from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import CreatePostModal from './CreatePostModal';
+import api from '../utils/api';
+import MentionInput from './MentionInput';
+import { useCurrentUserLevel } from '../hooks/useCurrentUserLevel';
 
 interface PostCardProps {
   post: Post;
@@ -23,7 +26,8 @@ interface PostCardProps {
 }
 
 const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, onDelete, className, isDetail = false }, ref) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { level: currentUserLevel } = useCurrentUserLevel();
   const [isLiked, setIsLiked] = useState(post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
   const [isCollected, setIsCollected] = useState(post.is_collected);
@@ -36,9 +40,140 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
   const [isFollowing, setIsFollowing] = useState(post.author.is_following);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
+  // Comments & Expansion State
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const fetchComments = async (force: boolean = false) => {
+    if (comments.length > 0 && !force) return; // Already loaded and not forced
+    setLoadingComments(true);
+    try {
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      
+      let rawComments: Comment[] = [];
+      
+      if (post.type === 'album') {
+         // Album comments logic
+         const albumData = await getAlbum(post.id);
+         const albumComments = Array.isArray(albumData.comments) ? albumData.comments : [];
+         // Map flat album comments to Comment interface structure
+         rawComments = albumComments.map((c: any) => ({
+            id: c.id,
+            post_id: post.id,
+            content: c.content,
+            created_at: c.created_at,
+            author: {
+                username: c.username,
+                nickname: c.nickname,
+                custom_title: c.custom_title,
+                avatar: c.avatar
+            },
+            replies: []
+         }));
+      } else {
+         // Standard post comments logic
+         const res = await api.get<Comment[]>(`/api/posts/${post.id}/comments`, config);
+         const responseData = res.data as any;
+         rawComments = (Array.isArray(responseData) ? responseData : (responseData.data || [])) as Comment[];
+      }
+      
+      const commentMap = new Map<number, Comment>();
+      const rootComments: Comment[] = [];
+
+      rawComments.forEach(c => {
+        commentMap.set(c.id, { ...c, replies: [] });
+      });
+
+      rawComments.forEach(c => {
+        const processedComment = commentMap.get(c.id)!;
+        if (c.parent_id) {
+          const parent = commentMap.get(c.parent_id);
+          if (parent) {
+            parent.replies?.push(processedComment);
+          } else {
+            rootComments.push(processedComment);
+          }
+        } else {
+          rootComments.push(processedComment);
+        }
+      });
+
+      rootComments.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setComments(rootComments);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleToggleExpand = () => {
+    if (isDetail) return; // Don't expand in detail view (it's already full)
+    const newExpandedState = !isExpanded;
+    setIsExpanded(newExpandedState);
+    if (newExpandedState) {
+        fetchComments();
+    }
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentContent.trim() || !user) return;
+
+    if (currentUserLevel !== null && currentUserLevel < 5) {
+      alert('您的等级不足 5 级，无法评论。请前往游戏内升级！');
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      if (post.type === 'album') {
+        // Album comment submission
+        await createAlbumComment(post.id, commentContent);
+        // Album API doesn't return the comment object, so we must refetch
+        setComments([]); // Clear to force refetch
+        await fetchComments(true);
+      } else {
+        // Standard post comment submission
+        await api.post(`/api/posts/${post.id}/comments`, {
+            content: commentContent,
+            parent_id: replyingTo?.id
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        // Clear and reload
+        setComments([]); // Clear to force refetch
+        await fetchComments(true);
+      }
+      
+      setCommentContent('');
+      setReplyingTo(null);
+      
+      // Update comment count locally
+      if (onUpdate) {
+        onUpdate({
+            ...post,
+            comments_count: post.comments_count + 1
+        });
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.detail || '评论失败');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
   const handleShare = async () => {
     try {
-      const url = `${window.location.origin}/activity/${post.id}`;
+      let url = `${window.location.origin}/activity/${post.id}`;
+      if (post.type === 'album') {
+        url += '?type=album';
+      }
       await navigator.clipboard.writeText(url);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
@@ -278,7 +413,7 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
 
             <div className={clsx(
               "prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-300",
-              isDetail ? "prose-base" : "prose-sm line-clamp-6",
+              (isDetail || isExpanded) ? "prose-base" : "prose-sm line-clamp-6",
               "prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0"
             )}>
                <ReactMarkdown 
@@ -291,7 +426,7 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
                    )
                  }}
                >
-                 {isDetail ? processedContent : processedContent.slice(0, 300) + (processedContent.length > 300 ? '...' : '')}
+                 {(isDetail || isExpanded) ? processedContent : processedContent.slice(0, 300) + (processedContent.length > 300 ? '...' : '')}
                </ReactMarkdown>
             </div>
           </div>
@@ -331,13 +466,21 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
               <span>{likesCount > 0 ? likesCount : '点赞'}</span>
             </button>
 
-            <Link 
-              to={post.type === 'album' ? `/player/${post.author.username}?tab=albums` : `/activity/${post.id}`}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-emerald-600 transition-colors"
-            >
-              <MessageSquare size={18} />
-              <span>{post.comments_count > 0 ? post.comments_count : '评论'}</span>
-            </Link>
+            <button 
+               onClick={(e) => {
+                 if (!isDetail) {
+                     e.preventDefault();
+                     handleToggleExpand();
+                 }
+               }}
+               className={clsx(
+                 "flex items-center gap-1.5 text-sm transition-colors",
+                 isExpanded ? "text-emerald-600" : "text-slate-500 hover:text-emerald-600"
+               )}
+             >
+               <MessageSquare size={18} className={clsx(isExpanded && "fill-current")} />
+               <span>{post.comments_count > 0 ? post.comments_count : '评论'}</span>
+             </button>
 
             <button 
               onClick={handleCollect}
@@ -366,6 +509,85 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
             {isCopied && <span className="text-xs font-medium">已复制</span>}
           </button>
         </div>
+
+        {/* Expanded Comment Section */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              key="expanded-content"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-700">
+                 {/* Input Area */}
+                 {user ? (
+                   <form onSubmit={handleSubmitComment} className="mb-6">
+                     {replyingTo && (
+                       <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg mb-2 text-sm">
+                         <span className="text-slate-500">
+                           回复 <span className="font-bold text-emerald-500">@{replyingTo.author.nickname || replyingTo.author.username}</span>
+                         </span>
+                         <button 
+                           type="button"
+                           onClick={() => setReplyingTo(null)}
+                           className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
+                         >
+                           <X size={14} />
+                         </button>
+                       </div>
+                     )}
+                     <div className="relative">
+                       <MentionInput
+                         value={commentContent}
+                         onChange={(e) => setCommentContent(e.target.value)}
+                         placeholder={replyingTo ? "写下你的回复..." : "发表你的看法..."}
+                         className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 pr-12 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none min-h-[80px] text-sm text-slate-900 dark:text-white"
+                       />
+                       <button
+                         type="submit"
+                         disabled={isSubmittingComment || !commentContent.trim()}
+                         className="absolute bottom-2 right-2 p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                       >
+                         {isSubmittingComment ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                       </button>
+                     </div>
+                   </form>
+                 ) : (
+                   <div className="text-center py-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 mb-6">
+                     <p className="text-sm text-slate-500 mb-2">登录后参与讨论</p>
+                     <Link to="/login" className="text-emerald-500 text-sm font-medium hover:underline">
+                       立即登录
+                     </Link>
+                   </div>
+                 )}
+
+                 {/* Comments List */}
+                 <div className="space-y-4">
+                   {loadingComments ? (
+                     <div className="flex justify-center py-4">
+                       <Loader2 size={24} className="text-emerald-500 animate-spin" />
+                     </div>
+                   ) : comments.length === 0 ? (
+                     <div className="text-center py-8 text-slate-500 text-sm">
+                       暂无评论，快来抢沙发吧！
+                     </div>
+                   ) : (
+                     comments.map(comment => (
+                       <CommentItem 
+                         key={comment.id} 
+                         comment={comment} 
+                         onReply={setReplyingTo}
+                       />
+                     ))
+                   )}
+                 </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       
       <CreatePostModal 
@@ -379,5 +601,102 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
 });
 
 PostCard.displayName = 'PostCard';
+
+const CommentContent = ({ content }: { content: string }) => {
+  const processed = content.replace(
+    /@([^ \t\n\r\f\v@,.!?;:，。！？]+)/g, 
+    (match, username) => `[${match}](/player/${username})`
+  );
+  
+  return (
+    <div className="prose dark:prose-invert prose-sm max-w-none text-slate-700 dark:text-slate-300 leading-relaxed break-words">
+       <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+              a: ({node, ...props}) => (
+                <Link to={props.href || '#'} className="text-emerald-500 hover:underline" onClick={(e) => e.stopPropagation()}>
+                  {props.children}
+                </Link>
+              ),
+              p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
+          }}
+       >
+         {processed}
+       </ReactMarkdown>
+    </div>
+  );
+};
+
+const CommentItem = ({ comment, onReply }: { comment: Comment, onReply: (comment: Comment) => void }) => {
+  if (!comment || !comment.author) return null; // Safety check
+  
+  return (
+    <div className="flex gap-3 group">
+      <Link to={`/player/${comment.author.username}`} className="flex-shrink-0">
+        <img 
+          src={comment.author.avatar || `https://cravatar.eu/helmavatar/${comment.author.username}/64.png`}
+          alt={comment.author.username}
+          className="w-8 h-8 rounded-lg bg-slate-100"
+        />
+      </Link>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Link to={`/player/${comment.author.username}`} className="font-bold text-sm text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
+              {comment.author.nickname || comment.author.username}
+            </Link>
+            {comment.author.custom_title && comment.author.custom_title !== '玩家' && (
+               <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
+                 {comment.author.custom_title}
+               </span>
+            )}
+            <span className="text-xs text-slate-400">
+              {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: zhCN })}
+            </span>
+          </div>
+          <button 
+            onClick={() => onReply(comment)}
+            className="text-slate-400 hover:text-emerald-500 text-xs opacity-0 group-hover:opacity-100 transition-all"
+          >
+            回复
+          </button>
+        </div>
+        <CommentContent content={comment.content} />
+
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-2 space-y-3 pl-3 border-l-2 border-slate-100 dark:border-slate-800">
+            {comment.replies.map(reply => (
+              <div key={reply.id} className="flex gap-2">
+                <Link to={`/player/${reply.author.username}`} className="flex-shrink-0">
+                  <img 
+                    src={reply.author.avatar || `https://cravatar.eu/helmavatar/${reply.author.username}/64.png`}
+                    alt={reply.author.username}
+                    className="w-6 h-6 rounded bg-slate-100"
+                  />
+                </Link>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Link to={`/player/${reply.author.username}`} className="font-bold text-xs text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
+                      {reply.author.nickname || reply.author.username}
+                    </Link>
+                     {reply.author.custom_title && reply.author.custom_title !== '玩家' && (
+                       <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
+                         {reply.author.custom_title}
+                       </span>
+                    )}
+                    <span className="text-xs text-slate-400">
+                      {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true, locale: zhCN })}
+                    </span>
+                  </div>
+                  <CommentContent content={reply.content} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default PostCard;

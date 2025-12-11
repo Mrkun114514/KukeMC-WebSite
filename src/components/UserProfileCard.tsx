@@ -5,15 +5,12 @@ import {
   User as UserIcon, 
   LogOut, 
   LayoutDashboard, 
-  Moon, 
-  Sun,
-  Monitor,
   ChevronRight,
   Shield,
-  FileText
+  FileText,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { getFollowStats } from '../services/follow';
 import { getMyLevelInfo } from '../services/leveling';
 
@@ -24,7 +21,6 @@ interface UserProfileCardProps {
 
 export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
   const [stats, setStats] = useState({ followers: 0, following: 0 });
   const [levelInfo, setLevelInfo] = useState<{ level: number; current_xp: number; next_level_xp: number } | null>(null);
 
@@ -51,29 +47,12 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
 
   if (!user) return null;
 
-  const cycleTheme = () => {
-    if (theme === "light") setTheme("dark");
-    else if (theme === "dark") setTheme("system");
-    else setTheme("light");
-  };
-
-  const themeIcon = {
-    light: <Sun size={16} />,
-    dark: <Moon size={16} />,
-    system: <Monitor size={16} />
-  }[theme] || <Sun size={16} />;
-
-  const themeLabel = {
-    light: '浅色',
-    dark: '深色',
-    system: '跟随系统'
-  }[theme] || '浅色';
-
   const containerVariants = {
     hidden: { 
       opacity: 0, 
       y: 15, 
       scale: 0.95,
+      x: "-50%",
       transition: { 
         duration: 0.2
       }
@@ -82,6 +61,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
       opacity: 1, 
       y: 0, 
       scale: 1,
+      x: "-50%",
       transition: { 
         type: "spring", 
         stiffness: 350, 
@@ -94,6 +74,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
       opacity: 0, 
       y: 10, 
       scale: 0.95,
+      x: "-50%",
       transition: { duration: 0.2 }
     }
   };
@@ -124,14 +105,14 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="absolute top-full right-0 mt-2 w-80 z-50 origin-top-right"
+          className="absolute top-full left-1/2 mt-2 w-80 z-50 origin-top"
           onMouseLeave={onClose}
         >
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/50 overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
-            {/* 顶部背景图 - 更高，更丰富的视觉设计 */}
-            <div className="h-32 relative overflow-hidden group">
-               {/* 主背景渐变 */}
-               <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 dark:from-violet-800 dark:via-indigo-800 dark:to-blue-900"></div>
+            {/* 顶部背景图 - 高度调整，颜色更浅更贴合主题 */}
+            <div className="h-24 relative overflow-hidden group">
+               {/* 主背景渐变 - 更浅的蓝青色系 */}
+               <div className="absolute inset-0 bg-gradient-to-br from-sky-300 via-blue-400 to-indigo-400 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-900"></div>
                
                {/* 噪点纹理叠加 */}
                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-40 mix-blend-overlay"></div>
@@ -139,7 +120,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
                {/* 装饰性网格 */}
                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_100%)] opacity-30"></div>
 
-               {/* 动态光晕与几何图形 */}
+               {/* 动态光晕与几何图形 - 改为蓝紫色系点缀 */}
                <motion.div 
                  animate={{ 
                    y: [0, -20, 0],
@@ -152,7 +133,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
                    repeat: Infinity,
                    ease: "easeInOut" 
                  }}
-                 className="absolute -top-10 -right-10 w-48 h-48 bg-fuchsia-500/30 rounded-full blur-3xl mix-blend-screen"
+                 className="absolute -top-10 -right-10 w-48 h-48 bg-blue-400/30 rounded-full blur-3xl mix-blend-screen"
                />
                <motion.div 
                  animate={{ 
@@ -167,7 +148,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
                    ease: "easeInOut",
                    delay: 1
                  }}
-                 className="absolute top-10 -left-10 w-40 h-40 bg-cyan-400/30 rounded-full blur-3xl mix-blend-screen"
+                 className="absolute top-10 -left-10 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl mix-blend-screen"
                />
 
                {/* 悬浮的装饰圆环 */}
@@ -185,7 +166,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
 
             <div className="px-6 pb-6 relative">
               {/* 头像 - 居中且放大 */}
-              <div className="relative -mt-16 mb-4 flex justify-center">
+              <div className="relative -mt-12 mb-4 flex justify-center">
                 <motion.div 
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -217,11 +198,11 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
               {/* 用户名和等级 - 居中布局 */}
               <motion.div variants={itemVariants} className="text-center mb-6">
                 <Link to={`/player/${user.username}`} className="inline-flex items-center gap-2 group">
-                    <span className="text-xl font-bold text-slate-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <span className="text-xl font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                       {user.username}
                     </span>
                     {levelInfo && (
-                        <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 dark:from-blue-400/20 dark:to-indigo-400/20 text-blue-600 dark:text-blue-300 text-xs font-bold font-mono border border-blue-100 dark:border-blue-800/50">
+                        <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 text-emerald-600 dark:text-emerald-300 text-xs font-bold font-mono border border-emerald-100 dark:border-emerald-800/50">
                             Lv.{levelInfo.level}
                         </span>
                     )}
@@ -230,17 +211,17 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
                 {/* 社交数据 - 增加交互动效 */}
                 <div className="flex justify-center items-center gap-6 mt-3 text-sm">
                     <motion.div variants={statVariants} whileHover={{ scale: 1.1 }} className="flex flex-col items-center cursor-pointer group">
-                        <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-blue-500 transition-colors">{stats.following}</span>
+                        <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-emerald-500 transition-colors">{stats.following}</span>
                         <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">关注</span>
                     </motion.div>
                     <div className="w-px h-8 bg-slate-100 dark:bg-slate-800"></div>
                     <motion.div variants={statVariants} whileHover={{ scale: 1.1 }} className="flex flex-col items-center cursor-pointer group">
-                        <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-blue-500 transition-colors">{stats.followers}</span>
+                        <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-emerald-500 transition-colors">{stats.followers}</span>
                         <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">粉丝</span>
                     </motion.div>
                     <div className="w-px h-8 bg-slate-100 dark:bg-slate-800"></div>
                     <motion.div variants={statVariants} whileHover={{ scale: 1.1 }} className="flex flex-col items-center cursor-pointer group">
-                        <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-blue-500 transition-colors">0</span>
+                        <span className="font-bold text-slate-900 dark:text-white text-base group-hover:text-emerald-500 transition-colors">0</span>
                         <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">动态</span>
                     </motion.div>
                 </div>
@@ -258,7 +239,7 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
                             initial={{ width: 0 }}
                             animate={{ width: `${(levelInfo.current_xp / levelInfo.next_level_xp) * 100}%` }}
                             transition={{ duration: 1.2, ease: "circOut", delay: 0.2 }}
-                            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 relative overflow-hidden"
+                            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 relative overflow-hidden"
                         >
                             <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>
                         </motion.div>
@@ -271,15 +252,16 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
                 {[
                   { to: `/player/${user.username}`, icon: UserIcon, label: '个人中心' },
                   { to: '/dashboard', icon: LayoutDashboard, label: '任务中心' },
+                  { to: '/chat', icon: MessageCircle, label: '在线聊天' },
                   { to: '/tickets', icon: FileText, label: '我的工单' }
                 ].map((item) => (
                   <motion.div key={item.to} variants={itemVariants}>
                     <Link 
                       to={item.to} 
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:text-blue-600 dark:hover:text-blue-400 transition-all group relative overflow-hidden"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all group relative overflow-hidden"
                     >
-                        <div className="absolute inset-0 bg-blue-50 dark:bg-blue-900/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <item.icon size={18} className="group-hover:scale-110 group-hover:text-blue-500 transition-transform duration-300 relative z-10" />
+                        <div className="absolute inset-0 bg-emerald-50 dark:bg-emerald-900/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <item.icon size={18} className="group-hover:scale-110 group-hover:text-emerald-500 transition-transform duration-300 relative z-10" />
                         <span className="font-medium relative z-10">{item.label}</span>
                         <ChevronRight size={14} className="ml-auto opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all duration-300" />
                     </Link>
@@ -291,17 +273,6 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
 
               {/* 底部操作 - 依次滑入 */}
               <div className="space-y-1.5">
-                <motion.button 
-                    variants={itemVariants}
-                    onClick={cycleTheme}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all group text-left relative overflow-hidden"
-                >
-                    <div className="w-5 h-5 flex items-center justify-center group-hover:rotate-90 transition-transform duration-500 text-slate-500 dark:text-slate-400 group-hover:text-orange-500 dark:group-hover:text-yellow-400">
-                        {themeIcon}
-                    </div>
-                    <span className="font-medium">主题: {themeLabel}</span>
-                    <ChevronRight size={14} className="ml-auto opacity-0 -translate-x-2 group-hover:opacity-50 group-hover:translate-x-0 transition-all duration-300" />
-                </motion.button>
                 <motion.button 
                     variants={itemVariants}
                     onClick={() => { logout(); onClose(); }}

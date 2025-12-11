@@ -21,16 +21,20 @@ import {
   ExternalLink,
   Ticket,
   Compass,
-  LayoutDashboard
+  LayoutDashboard,
+  ClipboardCheck,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import api from '../utils/api';
 
-import { ThemeToggle } from './ThemeToggle';
 import { NotificationList } from './NotificationList';
 import { UserProfileCard } from './UserProfileCard';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface NavLinkItem {
   name: string;
@@ -94,6 +98,7 @@ const NavItem = ({ link, isMobile = false, isActive }: { link: NavLinkItem, isMo
 };
 
 const Navbar = () => {
+  const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -102,6 +107,18 @@ const Navbar = () => {
   const [ticketCount, setTicketCount] = useState(0);
   const [showProfileCard, setShowProfileCard] = useState(false);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const cycleTheme = () => {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
+  };
+
+  const ThemeIcon = {
+    light: Sun,
+    dark: Moon,
+    system: Monitor
+  }[theme] || Sun;
 
   const handleMouseEnter = () => {
     if (closeTimeoutRef.current) {
@@ -148,9 +165,8 @@ const Navbar = () => {
   const primaryLinks: NavLinkItem[] = [
     { name: '首页', path: '/', icon: Home },
     { name: '动态', path: '/activity', icon: Compass },
-    { name: '聊天', path: '/chat', icon: MessageCircle },
-    { name: '任务', path: '/dashboard', icon: LayoutDashboard },
     { name: '公告', path: '/news', icon: Megaphone, relatedPaths: ['/changelog'] },
+    { name: '众议', path: '/consensus', icon: ClipboardCheck },
     { name: '玩家', path: '/players', icon: Users },
     { name: '封禁', path: '/bans', icon: Ban },
     { name: '统计', path: '/stats', icon: BarChart3 },
@@ -279,8 +295,13 @@ const Navbar = () => {
 
           {/* Right Actions */}
           <div className="hidden lg:flex items-center gap-3 pl-4">
+             <button
+                onClick={cycleTheme}
+                className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+             >
+                <ThemeIcon size={20} />
+             </button>
              <NotificationList />
-             <ThemeToggle />
              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
             {user ? (
               <div 
@@ -313,8 +334,13 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden flex items-center gap-3">
+            <button
+              onClick={cycleTheme}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white focus:outline-none"
+            >
+              <ThemeIcon size={20} />
+            </button>
             <NotificationList />
-            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white focus:outline-none"

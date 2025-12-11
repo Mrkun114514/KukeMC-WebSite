@@ -1604,9 +1604,6 @@ const Profile = () => {
                transition={{ duration: 0.3, ease: "easeOut" }}
                className="space-y-8"
              >
-               {/* Contribution Graph */}
-               <ContributionGraph username={details.username} />
-
                {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
@@ -1674,6 +1671,9 @@ const Profile = () => {
                   </div>
                 </div>
               </div>
+
+               {/* Contribution Graph */}
+               <ContributionGraph username={details.username} />
 
               {/* Detail Info Lists */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

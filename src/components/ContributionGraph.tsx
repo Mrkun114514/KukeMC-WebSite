@@ -161,14 +161,6 @@ const ContributionGraph: React.FC<ContributionGraphProps> = ({ username }) => {
     }
   }, [loading, weeks]);
 
-  if (loading) {
-    return (
-        <div className="w-full h-40 flex items-center justify-center bg-white/50 dark:bg-slate-900/30 rounded-3xl animate-pulse">
-            <Loader2 className="animate-spin text-emerald-500 w-8 h-8" />
-        </div>
-    );
-  }
-
   return (
     <motion.div 
       ref={containerRef}
@@ -197,11 +189,20 @@ const ContributionGraph: React.FC<ContributionGraphProps> = ({ username }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
           <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-             过去一年共活跃 {Math.floor(totalPlaytimeMinutes / 60)} 小时
+             {loading ? (
+                <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+             ) : (
+                <>过去一年共活跃 {Math.floor(totalPlaytimeMinutes / 60)} 小时</>
+             )}
           </h3>
       </div>
 
       {/* Heatmap Container */}
+      {loading ? (
+        <div className="w-full h-40 flex items-center justify-center">
+            <Loader2 className="animate-spin text-emerald-500 w-8 h-8" />
+        </div>
+      ) : (
       <div className="relative group/scroll">
         {/* Scroll Indicators */}
         <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none opacity-0 md:opacity-100 transition-opacity"></div>
@@ -270,8 +271,10 @@ const ContributionGraph: React.FC<ContributionGraphProps> = ({ username }) => {
             </div>
         </div>
       </div>
+      )}
 
       {/* Footer Legend */}
+      {!loading && (
       <div className="flex items-center justify-end gap-3 mt-4 text-xs font-medium text-slate-500 dark:text-slate-400">
         <span className="mr-1">Less</span>
         <div className="flex gap-1.5">
@@ -283,6 +286,7 @@ const ContributionGraph: React.FC<ContributionGraphProps> = ({ username }) => {
         </div>
         <span className="ml-1">More</span>
       </div>
+      )}
       
       {/* Hide scrollbar CSS */}
       <style>{`

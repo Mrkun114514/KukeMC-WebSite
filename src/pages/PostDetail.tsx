@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, ArrowLeft, MessageSquare, Send, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCurrentUserLevel } from '../hooks/useCurrentUserLevel';
@@ -12,6 +12,7 @@ import remarkGfm from 'remark-gfm';
 import api from '../utils/api';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { getAlbum, createAlbumComment } from '../services/album';
 
 const stripMarkdown = (markdown: string) => {
   if (!markdown) return "";
@@ -26,6 +27,8 @@ const stripMarkdown = (markdown: string) => {
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const isAlbum = searchParams.get('type') === 'album';
   const { user, token, loading: authLoading } = useAuth();
   const { level: currentUserLevel } = useCurrentUserLevel();
   const navigate = useNavigate();
@@ -44,32 +47,78 @@ const PostDetail = () => {
     if (id) {
       fetchPostAndComments(id);
     }
-  }, [id, token, authLoading]);
+  }, [id, token, authLoading, isAlbum]);
 
   const fetchPostAndComments = async (postId: string) => {
     setLoading(true);
     try {
       const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
       
-      const [postRes, commentsRes] = await Promise.all([
-        api.get<Post>(`/api/posts/${postId}`, config),
-        api.get<Comment[]>(`/api/posts/${postId}/comments`, config)
-      ]);
+      let fetchedPost: Post;
+      let rawComments: Comment[] = [];
 
-      setPost(postRes.data);
-      
-      // Organize comments (if backend returns flat list)
-      const responseData = commentsRes.data as any;
-      const flatComments = (Array.isArray(responseData) ? responseData : (responseData.data || [])) as Comment[];
+      if (isAlbum) {
+        const albumData = await getAlbum(Number(postId));
+        
+        // Map Album to Post
+        fetchedPost = {
+            id: albumData.id,
+            type: 'album',
+            title: albumData.title,
+            content: albumData.description || '',
+            author: {
+                username: albumData.username,
+                // These might be missing if getAlbum doesn't return full author object
+                // We'll use username as fallback
+                nickname: albumData.nickname || albumData.username,
+                avatar: albumData.avatar,
+                custom_title: albumData.custom_title
+            },
+            created_at: albumData.created_at,
+            likes_count: albumData.likes,
+            comments_count: albumData.comment_count || (albumData.comments?.length || 0),
+            collects_count: 0, // Album interface might not have this yet
+            is_liked: albumData.is_liked,
+            is_collected: albumData.is_collected || false,
+            images: [albumData.image_url], // Main image
+            tags: []
+        };
+
+        const albumComments = Array.isArray(albumData.comments) ? albumData.comments : [];
+        rawComments = albumComments.map((c: any) => ({
+            id: c.id,
+            post_id: Number(postId),
+            content: c.content,
+            created_at: c.created_at,
+            author: {
+                username: c.username,
+                nickname: c.nickname,
+                custom_title: c.custom_title,
+                avatar: c.avatar
+            },
+            replies: []
+        }));
+
+      } else {
+        const [postRes, commentsRes] = await Promise.all([
+            api.get<Post>(`/api/posts/${postId}`, config),
+            api.get<Comment[]>(`/api/posts/${postId}/comments`, config)
+        ]);
+        fetchedPost = postRes.data;
+        const responseData = commentsRes.data as any;
+        rawComments = (Array.isArray(responseData) ? responseData : (responseData.data || [])) as Comment[];
+      }
+
+      setPost(fetchedPost);
       
       const commentMap = new Map<number, Comment>();
       const rootComments: Comment[] = [];
 
-      flatComments.forEach(c => {
+      rawComments.forEach(c => {
         commentMap.set(c.id, { ...c, replies: [] });
       });
 
-      flatComments.forEach(c => {
+      rawComments.forEach(c => {
         const processedComment = commentMap.get(c.id)!;
         if (c.parent_id) {
           const parent = commentMap.get(c.parent_id);
@@ -100,24 +149,27 @@ const PostDetail = () => {
     if (!commentContent.trim() || !post) return;
 
     if (currentUserLevel !== null && currentUserLevel < 5) {
-      alert('您的等级不足 5 级，无法评论。请前往游戏内升级！');
-      return;
+        alert('您的等级不足 5 级，无法评论。请前往游戏内升级！');
+        return;
     }
 
     setIsSubmitting(true);
     try {
-      await api.post(`/api/posts/${post.id}/comments`, {
-        content: commentContent,
-        parent_id: replyingTo?.id
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (isAlbum) {
+         await createAlbumComment(post.id, commentContent);
+         // Album comment doesn't return the comment object, refetch all
+         await fetchPostAndComments(post.id.toString());
+      } else {
+         await api.post(`/api/posts/${post.id}/comments`, {
+            content: commentContent,
+            parent_id: replyingTo?.id
+         }, {
+            headers: { Authorization: `Bearer ${token}` }
+         });
+         // Refetch to be safe or append if response returned full comment
+         await fetchPostAndComments(post.id.toString());
+      }
 
-      // Add new comment to list (optimistic or refetch)
-      // For simplicity, just refetch or manually add
-      // Let's refetch to ensure consistency
-      fetchPostAndComments(post.id.toString());
-      
       setCommentContent('');
       setReplyingTo(null);
     } catch (err: any) {
@@ -126,6 +178,8 @@ const PostDetail = () => {
       setIsSubmitting(false);
     }
   };
+
+
 
   const handlePostUpdate = (updatedPost: Post) => {
     setPost(updatedPost);

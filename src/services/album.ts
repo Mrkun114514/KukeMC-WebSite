@@ -31,3 +31,8 @@ export const updateAlbum = async (id: number, data: { title?: string; descriptio
     const response = await api.put(`/api/album/${id}`, data);
     return response.data;
 };
+
+export const getAlbum = async (id: number) => {
+    const response = await api.get(`/api/album/${id}`);
+    return response.data;
+};

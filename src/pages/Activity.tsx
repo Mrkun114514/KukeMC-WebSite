@@ -25,8 +25,8 @@ const Activity = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const fetchPosts = async (reset = false) => {
+    setLoading(true);
     if (reset) {
-      setLoading(true);
       setPosts([]); 
       setPage(1);
     }

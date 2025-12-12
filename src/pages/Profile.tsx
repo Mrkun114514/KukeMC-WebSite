@@ -43,6 +43,7 @@ interface MusicMeta {
   artist: string;
   cover: string | null;
   id: string;
+  url?: string | null;
 }
 
 interface LevelInfo {
@@ -462,26 +463,63 @@ const Profile = () => {
   }, [profile?.music_id]);
 
   useEffect(() => {
-     // Try to autoplay when music_id changes
-     if (profile?.music_id && audioRef.current) {
+     // Try to autoplay when musicMeta is loaded
+     if (musicMeta && audioRef.current) {
          const audio = audioRef.current;
          audio.volume = 0.5; // Set reasonable default volume
          
+         // Define listener outside to be accessible for cleanup
+         const resumeAudio = async () => {
+            if (!audioRef.current) return;
+            try {
+                await audioRef.current.play();
+                setIsPlaying(true);
+                setAutoplayBlocked(false);
+                // Cleanup listeners
+                document.removeEventListener('click', resumeAudio);
+                document.removeEventListener('keydown', resumeAudio);
+                document.removeEventListener('touchstart', resumeAudio);
+            } catch (e) {
+                console.error("Resume play failed", e);
+            }
+         };
+
          const attemptPlay = async () => {
              try {
-                 await audio.play();
+                 // Ensure the audio is ready to play
+                 if (audio.readyState >= 2) {
+                    await audio.play();
+                 } else {
+                    audio.oncanplay = async () => {
+                        await audio.play();
+                        audio.oncanplay = null; // Clean up
+                    };
+                 }
+                 
                  setIsPlaying(true);
                  setAutoplayBlocked(false);
              } catch (error) {
                  console.log("Autoplay blocked:", error);
                  setIsPlaying(false);
                  setAutoplayBlocked(true);
+                 
+                 // Add one-time listener for user interaction to resume play
+                 document.addEventListener('click', resumeAudio);
+                 document.addEventListener('keydown', resumeAudio);
+                 document.addEventListener('touchstart', resumeAudio);
              }
          };
          
          attemptPlay();
+
+         // Cleanup function to remove listeners if component unmounts or music changes
+         return () => {
+            document.removeEventListener('click', resumeAudio);
+            document.removeEventListener('keydown', resumeAudio);
+            document.removeEventListener('touchstart', resumeAudio);
+         };
      }
-   }, [profile?.music_id]);
+   }, [musicMeta]);
   
   // Confirm Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -2858,8 +2896,8 @@ const Profile = () => {
 
                  <audio 
                     ref={audioRef}
-                    src={`https://music.163.com/song/media/outer/url?id=${profile.music_id}.mp3`} 
-                    autoPlay
+                    src={musicMeta ? (musicMeta.url || `https://music.163.com/song/media/outer/url?id=${profile.music_id}.mp3`) : undefined}
+                    preload="auto"
                     loop
                     onTimeUpdate={() => {
                         if (audioRef.current) {

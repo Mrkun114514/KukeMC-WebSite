@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Check, ThumbsUp, ThumbsDown, AlertCircle, MessageSquare, Heart, 
-    Shield, User as UserIcon, Send, Loader2, ArrowLeft, Calendar, Clock,
+    ThumbsUp, ThumbsDown, AlertCircle, MessageSquare, Heart, 
+    Shield, User as UserIcon, Send, Loader2, ArrowLeft, Calendar,
     BarChart2, Lock
 } from 'lucide-react';
 import clsx from 'clsx';

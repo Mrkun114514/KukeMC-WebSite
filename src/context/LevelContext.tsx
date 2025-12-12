@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { getMyLevelInfo } from '../services/leveling';
 
-interface LevelContextType {
+export interface LevelContextType {
   level: number | null;
   loading: boolean;
   refreshLevel: () => Promise<void>;

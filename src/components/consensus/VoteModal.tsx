@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, ThumbsUp, ThumbsDown, AlertCircle, MessageSquare, Heart, CornerDownRight, Shield, User as UserIcon, Send, Loader2 } from 'lucide-react';
+import { X, ThumbsUp, ThumbsDown, AlertCircle, MessageSquare, Heart, Shield, User as UserIcon, Send, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ModalPortal from '../ModalPortal';
-import { ConsensusProposal, VoteComment } from '../../types/consensus';
+import { ConsensusProposal } from '../../types/consensus';
 import { submitVote, getProposal, likeVote, replyVote } from '../../services/consensus';
 import { useCurrentUserLevel } from '../../hooks/useCurrentUserLevel';
 import { useAuth } from '../../context/AuthContext';
@@ -23,7 +23,6 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, proposal: initia
   const { user } = useAuth();
   const { level: userLevel } = useCurrentUserLevel();
   const [fullProposal, setFullProposal] = useState<ConsensusProposal>(initialProposal);
-  const [loading, setLoading] = useState(false);
   
   const [voteType, setVoteType] = useState<'agree' | 'disagree'>(
     initialProposal.my_vote?.vote_type || 'agree'
@@ -47,7 +46,6 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, proposal: initia
 
   const fetchProposalDetails = async () => {
       try {
-          setLoading(true);
           const data = await getProposal(initialProposal.id);
           setFullProposal(data);
           // Sync my vote state if available
@@ -58,8 +56,6 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, proposal: initia
           }
       } catch (err) {
           console.error("Failed to fetch proposal details", err);
-      } finally {
-          setLoading(false);
       }
   };
 
@@ -136,8 +132,15 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, proposal: initia
   const isLevelSufficient = initialProposal.min_level === 0 || (userLevel !== null && userLevel >= initialProposal.min_level);
 
   return (
-    <ModalPortal isOpen={isOpen} onClose={onClose}>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+    <ModalPortal>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -413,7 +416,9 @@ const VoteModal: React.FC<VoteModalProps> = ({ isOpen, onClose, proposal: initia
             </div>
           </div>
         </motion.div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ModalPortal>
   );
 };

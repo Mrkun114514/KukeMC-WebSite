@@ -9,7 +9,7 @@ import {
   Hash, Activity, CalendarDays,
   Reply, Trash2, X, Heart, Edit2, Plus, AlertTriangle, ThumbsUp, Image as ImageIcon, Upload, MessageCircle,
   UserPlus, UserMinus, Bookmark, Users, ChevronRight, Ban,
-  Star
+  Star, Play, Pause
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
@@ -35,6 +35,14 @@ interface UserProfile {
   is_liked: boolean;
   likers: string[];
   custom_title?: string;
+  music_id?: string | null;
+}
+
+interface MusicMeta {
+  name: string;
+  artist: string;
+  cover: string | null;
+  id: string;
 }
 
 interface LevelInfo {
@@ -425,9 +433,31 @@ const Profile = () => {
     signature: '',
     bio: '',
     tags: [] as string[],
-    newTag: ''
+    newTag: '',
+    music_id: ''
   });
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Music Player State
+  const [musicMeta, setMusicMeta] = useState<MusicMeta | null>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (profile?.music_id) {
+       // Reset state when music changes
+       setMusicMeta(null);
+       setProgress(0);
+       setIsPlaying(true);
+       
+       api.get(`/api/profile/music/${profile.music_id}`)
+         .then(res => {
+           setMusicMeta(res.data);
+         })
+         .catch(err => console.error(err));
+    }
+  }, [profile?.music_id]);
   
   // Confirm Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -943,7 +973,8 @@ const Profile = () => {
       signature: profile?.signature || '',
       bio: profile?.bio || '',
       tags: profile?.tags ? [...profile.tags] : [],
-      newTag: ''
+      newTag: '',
+      music_id: profile?.music_id || ''
     });
     setShowEditModal(true);
   };
@@ -984,7 +1015,8 @@ const Profile = () => {
       await api.post('/api/profile/update', {
         signature: editForm.signature,
         bio: editForm.bio,
-        tags: editForm.tags
+        tags: editForm.tags,
+        music_id: editForm.music_id
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -2264,6 +2296,33 @@ const Profile = () => {
                   />
                 </div>
 
+                {/* Music ID */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    网易云音乐 ID <span className="text-slate-400 font-normal text-xs ml-1">(选填)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={editForm.music_id}
+                      onChange={(e) => {
+                         // Only allow numbers
+                         if (/^\d*$/.test(e.target.value)) {
+                            setEditForm({...editForm, music_id: e.target.value});
+                         }
+                      }}
+                      className="w-full px-4 py-3 pl-10 rounded-xl bg-slate-50 dark:bg-slate-950 border-transparent focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 text-slate-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none placeholder:text-slate-400"
+                      placeholder="输入网易云音乐歌曲 ID"
+                    />
+                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                     </div>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                     仅支持网易云音乐。在网易云音乐分享歌曲链接中可找到 ID，例如：music.163.com/song?id=<b>123456</b>
+                  </p>
+                </div>
+
                 {/* Bio */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -2692,6 +2751,106 @@ const Profile = () => {
                </div>
             </motion.div>
            </div>
+        )}
+      </AnimatePresence>
+      {/* Floating Music Player */}
+      <AnimatePresence>
+        {profile?.music_id && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-40"
+          >
+            <div className="relative group">
+              {/* Main Player Card */}
+              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-3 pr-4 rounded-full shadow-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 transition-all hover:scale-105 hover:shadow-emerald-500/10">
+                 {/* Album Art / Spinning Disc */}
+                 <div className="relative w-10 h-10 flex items-center justify-center">
+                    <div className={clsx(
+                        "absolute inset-0 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-md bg-slate-900",
+                        isPlaying ? "animate-[spin_8s_linear_infinite]" : ""
+                    )}>
+                       {musicMeta?.cover ? (
+                          <img src={musicMeta.cover} alt="Cover" className="w-full h-full object-cover" />
+                       ) : (
+                          <div className="w-full h-full bg-[repeating-radial-gradient(#333_0,#333_2px,#000_3px,#000_4px)] opacity-50"></div>
+                       )}
+                    </div>
+                    {!musicMeta?.cover && (
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 z-10"></div>
+                    )}
+                    {musicMeta?.cover && (
+                         <div className="absolute w-2 h-2 bg-white/20 backdrop-blur-sm rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-white/40"></div>
+                    )}
+                 </div>
+                 
+                 {/* Controls & Info */}
+                 <div className="flex flex-col gap-1 min-w-[140px]">
+                    <div className="flex items-center justify-between gap-4">
+                       <div className="flex flex-col overflow-hidden">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 max-w-[110px] truncate leading-tight">
+                            {musicMeta?.name || "加载中..."}
+                          </span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 max-w-[110px] truncate leading-tight">
+                            {musicMeta?.artist || "网易云音乐"}
+                          </span>
+                       </div>
+                       
+                       <button 
+                         onClick={() => {
+                            if (audioRef.current) {
+                                if (isPlaying) audioRef.current.pause();
+                                else audioRef.current.play();
+                                setIsPlaying(!isPlaying);
+                            }
+                         }}
+                         className="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-emerald-500 hover:text-white text-slate-700 dark:text-slate-200 transition-colors flex-shrink-0"
+                       >
+                          {isPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
+                       </button>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden cursor-pointer"
+                         onClick={(e) => {
+                             if (audioRef.current) {
+                                 const rect = e.currentTarget.getBoundingClientRect();
+                                 const x = e.clientX - rect.left;
+                                 const width = rect.width;
+                                 const percent = x / width;
+                                 audioRef.current.currentTime = percent * audioRef.current.duration;
+                                 setProgress(percent * 100);
+                             }
+                         }}
+                    >
+                       <motion.div 
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${progress}%` }}
+                          layoutId="progressBar"
+                       />
+                    </div>
+                 </div>
+
+                 <audio 
+                    ref={audioRef}
+                    src={`http://music.163.com/song/media/outer/url?id=${profile.music_id}.mp3`} 
+                    autoPlay 
+                    loop
+                    onTimeUpdate={() => {
+                        if (audioRef.current) {
+                            const current = audioRef.current.currentTime;
+                            const duration = audioRef.current.duration;
+                            if (duration) setProgress((current / duration) * 100);
+                        }
+                    }}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    className="hidden"
+                 />
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

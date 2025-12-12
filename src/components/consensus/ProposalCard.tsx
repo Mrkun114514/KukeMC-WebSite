@@ -2,10 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Clock, Check, X, Shield, BarChart2, Edit2, ArrowRight } from 'lucide-react';
+import { Clock, Check, X, Shield, Edit2, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
 import { ConsensusProposal } from '../../types/consensus';
-import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 interface ProposalCardProps {
@@ -14,7 +13,7 @@ interface ProposalCardProps {
 }
 
 const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
-  const { user } = useAuth();
+  // const { user } = useAuth();
 
   const totalVotes = proposal.stats.total;
   const agreePercent = totalVotes > 0 ? (proposal.stats.agree / totalVotes) * 100 : 0;
@@ -24,7 +23,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
   const isClosed = !proposal.is_active || isEnded;
 
   const isPassed = isEnded && (proposal.stats.agree > proposal.stats.disagree);
-  const isRejected = isEnded && (proposal.stats.agree <= proposal.stats.disagree);
+  // const isRejected = isEnded && (proposal.stats.agree <= proposal.stats.disagree);
 
   return (
     <motion.div

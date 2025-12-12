@@ -2858,7 +2858,7 @@ const Profile = () => {
 
                  <audio 
                     ref={audioRef}
-                    src={`http://music.163.com/song/media/outer/url?id=${profile.music_id}.mp3`} 
+                    src={`https://music.163.com/song/media/outer/url?id=${profile.music_id}.mp3`} 
                     autoPlay
                     loop
                     onTimeUpdate={() => {

@@ -78,7 +78,7 @@ const Settings = () => {
 
   const handleSendCode = async () => {
     if (!bindQQInput || bindQQInput.length < 5) {
-      warning('请输入正确的QQ号');
+      warning('请输入正确输入您的QQ号');
       return;
     }
     setIsSendingCode(true);

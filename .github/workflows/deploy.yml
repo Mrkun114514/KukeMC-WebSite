@@ -14,8 +14,8 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: root
+          port: 5463
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
           script: |
             echo "开始自动部署 KukeMC 官网..."
             cd /www/wwwroot/kuke.ink

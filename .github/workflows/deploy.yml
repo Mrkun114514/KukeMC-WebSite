@@ -17,9 +17,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            echo "🔄 开始自动部署 KukeMC 官网..."
+            echo "开始自动部署 KukeMC 官网..."
             cd /www/wwwroot/kuke.ink
             git pull origin main
             npm install --prefer-offline
             npm run build
-            echo "✅ 部署成功！网站已更新。"
+            echo "部署成功！网站已更新。"

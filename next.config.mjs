@@ -19,6 +19,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  transpilePackages: ['tiptap-markdown'],
 };
 
 export default nextConfig;

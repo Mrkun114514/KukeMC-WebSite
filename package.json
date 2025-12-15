@@ -14,6 +14,22 @@
     "generate-sitemap": "node scripts/generate-sitemap.js"
   },
   "dependencies": {
+    "@tiptap/extension-highlight": "^3.13.0",
+    "@tiptap/extension-image": "^3.13.0",
+    "@tiptap/extension-link": "^3.13.0",
+    "@tiptap/extension-mention": "^3.13.0",
+    "@tiptap/extension-placeholder": "^3.13.0",
+    "@tiptap/extension-table": "^3.13.0",
+    "@tiptap/extension-table-cell": "^3.13.0",
+    "@tiptap/extension-table-header": "^3.13.0",
+    "@tiptap/extension-table-row": "^3.13.0",
+    "@tiptap/extension-task-item": "^3.13.0",
+    "@tiptap/extension-task-list": "^3.13.0",
+    "@tiptap/extension-text-align": "^3.13.0",
+    "@tiptap/extension-underline": "^3.13.0",
+    "@tiptap/pm": "^3.13.0",
+    "@tiptap/react": "^3.13.0",
+    "@tiptap/starter-kit": "^3.13.0",
     "@types/canvas-confetti": "^1.9.0",
     "axios": "^1.7.9",
     "canvas-confetti": "^1.9.4",
@@ -29,7 +45,8 @@
     "react-router-dom": "^7.1.1",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.6.0",
-    "vditor": "^3.11.2"
+    "tippy.js": "^6.3.7",
+    "tiptap-markdown": "^0.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

@@ -183,7 +183,7 @@ const PostDetailClient = ({ initialPost, isAlbum = false }: { initialPost: Post,
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="relative z-10 max-w-7xl mx-auto">
+      <div className="relative z-10 max-w-6xl mx-auto">
         <button 
           onClick={() => router.back()}
           className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white mb-6 transition-colors"
@@ -192,16 +192,21 @@ const PostDetailClient = ({ initialPost, isAlbum = false }: { initialPost: Post,
           <span>返回</span>
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Author Info */}
-          <div className="lg:col-span-3">
-             <div className="sticky top-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Sidebar (Author & Recommendations) */}
+          <div className="lg:col-span-3 space-y-6 order-2 lg:order-1">
+             <div className="sticky top-24 space-y-6">
                 <AuthorInfoCard author={post.author} />
+                <RecommendedPosts 
+                  currentPostId={post.id} 
+                  tags={post.tags}
+                  category={post.category}
+                />
              </div>
           </div>
 
-          {/* Center Column: Post Content */}
-          <div className="lg:col-span-6 space-y-6">
+          {/* Right Column: Post Content */}
+          <div className="lg:col-span-9 space-y-6 order-1 lg:order-2">
             <PostCard 
               post={post} 
               onUpdate={handlePostUpdate} 
@@ -220,17 +225,6 @@ const PostDetailClient = ({ initialPost, isAlbum = false }: { initialPost: Post,
               title="全部评论"
               className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6"
             />
-          </div>
-
-          {/* Right Column: Recommendations */}
-          <div className="lg:col-span-3">
-             <div className="sticky top-24">
-                <RecommendedPosts 
-                  currentPostId={post.id} 
-                  tags={post.tags}
-                  category={post.category}
-                />
-             </div>
           </div>
         </div>
       </div>

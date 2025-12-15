@@ -9,7 +9,7 @@ export interface VoteComment {
   id: number;
   username: string;
   real_username?: string | null;
-  vote_type: 'agree' | 'disagree';
+  vote_type: 'agree' | 'disagree' | 'neutral';
   reason: string | null;
   user_level: number;
   updated_at: string;
@@ -23,6 +23,7 @@ export interface ConsensusProposal {
   id: number;
   title: string;
   content: string;
+  type?: 'standard' | 'discussion';
   created_at: string;
   end_time: string | null;
   min_level: number;
@@ -33,7 +34,7 @@ export interface ConsensusProposal {
     total: number;
   };
   my_vote: {
-    vote_type: 'agree' | 'disagree';
+    vote_type: 'agree' | 'disagree' | 'neutral';
     reason: string | null;
     updated_at: string;
     is_anonymous?: boolean;
@@ -43,7 +44,7 @@ export interface ConsensusProposal {
 
 export interface VotePayload {
   proposal_id: number;
-  vote_type: 'agree' | 'disagree';
+  vote_type: 'agree' | 'disagree' | 'neutral';
   reason: string;
   is_anonymous?: boolean;
 }

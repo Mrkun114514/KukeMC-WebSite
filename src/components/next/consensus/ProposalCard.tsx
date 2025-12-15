@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,6 +23,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
   const isClosed = !proposal.is_active || isEnded;
 
   const isPassed = isEnded && (proposal.stats.agree > proposal.stats.disagree);
+  const isDiscussion = proposal.type === 'discussion';
 
   return (
     <motion.div
@@ -87,6 +90,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
 
       {/* Voting Stats - Modernized */}
       <div className="mt-auto space-y-4">
+         {!isDiscussion && (
          <div className="space-y-2">
             <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                <span>支持 {agreePercent.toFixed(0)}%</span>
@@ -109,6 +113,7 @@ const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
                />
             </div>
          </div>
+         )}
          
          {/* Action Area */}
          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -120,11 +125,13 @@ const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
                  <div className="flex items-center gap-3">
                      <span className={clsx(
                          "text-xs font-bold px-2 py-1 rounded border uppercase",
-                         proposal.my_vote.vote_type === 'agree' 
-                             ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30"
-                             : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30"
+                         isDiscussion
+                            ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/30"
+                            : proposal.my_vote.vote_type === 'agree' 
+                                ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30"
+                                : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30"
                      )}>
-                         已{proposal.my_vote.vote_type === 'agree' ? "支持" : "反对"}
+                         {isDiscussion ? "已参与" : `已${proposal.my_vote.vote_type === 'agree' ? "支持" : "反对"}`}
                      </span>
                      {!isClosed && (
                         <Link 
@@ -140,10 +147,10 @@ const ProposalCard: React.FC<ProposalCardProps> = ({ proposal }) => {
                      href={`/consensus/${proposal.id}`}
                      className="flex items-center gap-1 text-sm font-bold text-blue-600 dark:text-blue-400 hover:gap-2 transition-all"
                  >
-                     参与投票 <ArrowRight className="w-4 h-4" />
+                     {isDiscussion ? "参与讨论" : "参与投票"} <ArrowRight className="w-4 h-4" />
                  </Link>
              ) : (
-                 <span className="text-xs font-medium text-slate-400">投票已截止</span>
+                 <span className="text-xs font-medium text-slate-400">{isDiscussion ? "讨论已截止" : "投票已截止"}</span>
              )}
          </div>
       </div>

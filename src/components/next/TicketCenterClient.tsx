@@ -765,10 +765,12 @@ const TicketCenterClient = () => {
                     
                     // Grouping Logic
                     const prevLog = ticketDetail.logs[index - 1];
+                    const nextLog = ticketDetail.logs[index + 1];
                     const isSameUser = prevLog && prevLog.actor === log.actor && prevLog.action === 'comment' && !['assign', 'update_status', 'create'].includes(prevLog.action);
+                    const isNextSameUser = nextLog && nextLog.actor === log.actor && nextLog.action === 'comment' && !['assign', 'update_status', 'create'].includes(nextLog.action);
 
                     return (
-                      <div key={log.id} className={clsx("flex gap-3 w-full", isMe ? "flex-row-reverse" : "", isSameUser ? "mt-1" : "mt-4")}>
+                      <div key={log.id} className={clsx("flex gap-3 w-full", isMe ? "flex-row-reverse" : "", isSameUser ? "mt-[2px]" : "mt-4")}>
                          <div className={clsx(
                            "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden shadow-sm bg-slate-200",
                            isSameUser ? "invisible" : ""
@@ -796,8 +798,18 @@ const TicketCenterClient = () => {
                                </div>
                            )}
                            <div className={clsx(
-                             "p-3 rounded-2xl text-sm shadow-sm break-words whitespace-pre-wrap w-fit",
-                             isMe ? "bg-brand-500 text-white rounded-tr-none" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none"
+                             "p-3 text-sm shadow-sm break-words whitespace-pre-wrap w-fit",
+                             isMe 
+                               ? clsx(
+                                   "bg-brand-500 text-white rounded-2xl",
+                                   !isSameUser ? "rounded-tr-none" : "rounded-tr-md",
+                                   isNextSameUser && "rounded-br-md"
+                                 ) 
+                               : clsx(
+                                   "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-2xl",
+                                   !isSameUser ? "rounded-tl-none" : "rounded-tl-md",
+                                   isNextSameUser && "rounded-bl-md"
+                               )
                            )}>
                               {/* Check if message contains image markdown */}
                               {formattedMessage.match(/!\[(.*?)\]\((.*?)\)/) ? (
@@ -808,9 +820,11 @@ const TicketCenterClient = () => {
                                 formattedMessage
                               )}
                            </div>
-                           <div className={clsx("text-xs text-slate-400 mt-1", isMe ? "text-right" : "text-left")}>
-                             {new Date(log.created_at).toLocaleString()}
-                           </div>
+                           {!isNextSameUser && (
+                               <div className={clsx("text-xs text-slate-400 mt-1", isMe ? "text-right" : "text-left")}>
+                                 {new Date(log.created_at).toLocaleString()}
+                               </div>
+                           )}
                          </div>
                       </div>
                     );

@@ -37,6 +37,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,13 +227,20 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && onClose()}
+            onMouseDown={(e) => {
+              mouseDownTargetRef.current = e.target;
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+                onClose();
+              }
+            }}
           >
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col relative" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">{modalTitle}</h2>
-                <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
-                  <X size={24} />
+            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col relative border border-slate-200/50 dark:border-slate-700/50" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-4 border-b border-slate-200/50 dark:border-slate-800/50 shrink-0">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">{modalTitle}</h2>
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-all">
+                  <X size={20} />
                 </button>
               </div>
               
@@ -254,7 +262,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder={isAlbum ? "相册标题" : "给你的动态起个标题..."}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400"
+                        className="w-full px-4 py-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 font-medium"
                         maxLength={100}
                       />
                     </div>
@@ -270,10 +278,10 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                             key={cat.id}
                             type="button"
                             onClick={() => setCategory(cat.id)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
                               category === cat.id
-                                ? 'bg-emerald-500 border-emerald-500 text-white'
-                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-emerald-200 dark:hover:border-emerald-500/30'
                             }`}
                           >
                             {cat.label}
@@ -290,7 +298,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                       </label>
                       
                       <div className="relative">
-                        <div className="flex flex-wrap gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all min-h-[50px]">
+                        <div className="flex flex-wrap gap-2 p-2.5 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:border-emerald-500 transition-all min-h-[52px]">
                           <AnimatePresence mode="popLayout">
                             {tags.map(tag => (
                               <motion.div 
@@ -299,13 +307,13 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.8, opacity: 0 }}
                                 key={tag} 
-                                className="flex items-center gap-1.5 pl-3 pr-2 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-100 dark:border-emerald-500/20"
+                                className="flex items-center gap-1.5 pl-3 pr-1.5 py-1 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-500/20 dark:to-teal-500/20 text-emerald-700 dark:text-emerald-300 rounded-full border border-emerald-100 dark:border-emerald-500/20 shadow-sm group"
                               >
                                 <span className="text-sm font-medium">#{tag}</span>
                                 <button 
                                   type="button"
                                   onClick={() => handleRemoveTag(tag)} 
-                                  className="p-0.5 rounded-md hover:bg-emerald-200 dark:hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-700 transition-colors"
+                                  className="p-0.5 rounded-full hover:bg-emerald-200/50 dark:hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-700 dark:text-emerald-400/80 dark:hover:text-emerald-200 transition-colors"
                                 >
                                   <X size={14} />
                                 </button>
@@ -332,12 +340,13 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                           {showSuggestions && suggestions.length > 0 && (
                             <motion.div
                               ref={suggestionsRef}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              className="absolute z-10 left-0 right-0 top-full mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden max-h-60 overflow-y-auto"
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              className="absolute z-50 left-0 right-0 top-full mt-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden max-h-60 overflow-y-auto ring-1 ring-black/5"
                             >
-                              <div className="px-3 py-2 text-xs font-medium text-slate-400 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                              <div className="px-3 py-2 text-xs font-bold text-slate-500 bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 backdrop-blur-sm sticky top-0 z-10">
                                 {tagInput ? '搜索结果' : '热门推荐'}
                               </div>
                               {suggestions.map((suggestion) => (
@@ -379,7 +388,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ isOpen, onClose, onSu
                   </form>
                 </div>
 
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl">
+                <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50 flex justify-end gap-3 bg-slate-50/80 dark:bg-slate-800/50 backdrop-blur-md rounded-b-2xl">
                   <button
                     type="button"
                     onClick={onClose}

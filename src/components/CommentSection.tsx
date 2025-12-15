@@ -10,6 +10,7 @@ import MentionInput from './MentionInput';
 import { Comment, Author } from '../types/activity';
 import clsx from 'clsx';
 import api, { generateUploadHeaders } from '../utils/api';
+import LevelBadge from './LevelBadge';
 
 // --- Types ---
 // Define a standardized Comment interface for the UI
@@ -22,6 +23,7 @@ export interface UIComment {
     nickname?: string;
     avatar?: string;
     custom_title?: string;
+    level?: number;
   };
   replies?: UIComment[];
   parent_id?: number;
@@ -174,7 +176,7 @@ const CommentInput = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const [emojiPickerPos, setEmojiPickerPos] = useState({ top: 0, left: 0 });
+  const [emojiPickerPos, setEmojiPickerPos] = useState<{ top: number; left: number } | null>(null);
 
   const updateEmojiPickerPos = () => {
     if (emojiButtonRef.current) {
@@ -438,25 +440,27 @@ const CommentInput = ({
                     className="fixed inset-0 z-[9998]" 
                     onClick={() => setShowEmojiPicker(false)} 
                 />
-                <div 
-                    className="fixed z-[9999] p-3 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 grid grid-cols-6 gap-2 w-72 animate-in fade-in zoom-in-95 duration-200"
-                    style={{
-                        top: emojiPickerPos.top,
-                        left: emojiPickerPos.left
-                    }}
-                >
-                    {COMMON_EMOJIS.map(emoji => (
-                        <button
-                            key={emoji}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => handleEmojiClick(emoji)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-xl transition-colors flex items-center justify-center"
-                        >
-                            {emoji}
-                        </button>
-                    ))}
-                </div>
+                {emojiPickerPos && (
+                    <div 
+                        className="absolute z-[9999] p-3 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 grid grid-cols-6 gap-2 w-72 animate-in fade-in zoom-in-95 duration-200 origin-bottom-left"
+                        style={{
+                            top: emojiPickerPos.top,
+                            left: emojiPickerPos.left
+                        }}
+                    >
+                        {COMMON_EMOJIS.map(emoji => (
+                            <button
+                                key={emoji}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => handleEmojiClick(emoji)}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-xl transition-colors flex items-center justify-center"
+                            >
+                                {emoji}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </>,
             document.body
         )}
@@ -543,6 +547,8 @@ const CommentItem = ({
               {comment.author.nickname || comment.author.username}
             </Link>
             
+            <LevelBadge level={comment.author.level} />
+
             {comment.author.custom_title && comment.author.custom_title !== '玩家' && (
                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
                  {comment.author.custom_title}
@@ -655,6 +661,8 @@ const CommentItem = ({
               {comment.author.nickname || comment.author.username}
             </Link>
             
+            <LevelBadge level={comment.author.level} size="sm" />
+
             {comment.author.custom_title && comment.author.custom_title !== '玩家' && (
                <span className="px-1 py-0 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50 scale-90 origin-left">
                  {comment.author.custom_title}

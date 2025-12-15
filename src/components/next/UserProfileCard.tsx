@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { getFollowStats } from '@/services/follow';
 import { getMyLevelInfo } from '@/services/leveling';
+import LevelBadge from '@/components/LevelBadge';
 
 interface UserProfileCardProps {
   isOpen: boolean;
@@ -199,16 +200,12 @@ export const UserProfileCard = ({ isOpen, onClose }: UserProfileCardProps) => {
               </div>
 
               {/* 用户名和等级 - 居中布局 */}
-              <motion.div variants={itemVariants} className="text-center mb-6">
+                <motion.div variants={itemVariants} className="text-center mb-6">
                 <Link href={`/player/${user.username}`} className="inline-flex items-center gap-2 group">
                     <span className="text-xl font-bold text-slate-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                       {user.username}
                     </span>
-                    {levelInfo && (
-                        <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 text-emerald-600 dark:text-emerald-300 text-xs font-bold font-mono border border-emerald-100 dark:border-emerald-800/50">
-                            Lv.{levelInfo.level}
-                        </span>
-                    )}
+                    <LevelBadge level={levelInfo?.level} size="md" />
                 </Link>
                 
                 {/* 社交数据 - 增加交互动效 */}

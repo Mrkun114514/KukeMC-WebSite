@@ -1,157 +1,202 @@
-/* Fix Tailwind CSS conflicts with Vditor */
-.vditor-toolbar__item svg {
-  display: inline-block !important;
-  width: 14px !important; /* Vditor default is usually small */
-  height: 14px !important;
-  max-width: none !important;
+/* MarkdownEditor.css */
+.ProseMirror {
+  outline: none;
+  /* min-height removed from here to allow viewer overrides */
+  padding: 1rem;
+}
+
+.ProseMirror:not(.prose-viewer) {
+  min-height: 200px;
+}
+
+.ProseMirror.prose-viewer {
+  min-height: 0;
+  padding: 0;
+}
+
+.ProseMirror p {
+  line-height: 1.4 !important;
+  margin-bottom: 0.3em !important;
+  margin-top: 0 !important;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.dark .ProseMirror p.is-editor-empty:first-child::before {
+  color: #4b5563;
+}
+
+/* Typography Enhancements */
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  line-height: 1.25;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+.ProseMirror h1:first-child, .ProseMirror h2:first-child, .ProseMirror h3:first-child {
+  margin-top: 0;
+}
+
+/* Tables */
+.ProseMirror table {
+  border-collapse: collapse;
+  margin: 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border-style: hidden; /* Hide standard border to use box-shadow for rounded borders */
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+.dark .ProseMirror table {
+  box-shadow: 0 0 0 1px #374151;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  border: 1px solid #e5e7eb;
+  box-sizing: border-box;
+  min-width: 1em;
+  padding: 8px 12px;
+  position: relative;
+  vertical-align: middle;
+  text-align: center;
+}
+.dark .ProseMirror td,
+.dark .ProseMirror th {
+  border-color: #374151;
+}
+
+.ProseMirror th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+.dark .ProseMirror th {
+  background-color: #1f2937;
+}
+
+.ProseMirror table p {
   margin: 0 !important;
 }
 
-/* Fix for different icon sizes if needed */
-.vditor-tooltipped svg {
-    width: 14px !important;
-    height: 14px !important;
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
 }
 
-/* Reset general Vditor SVG behavior overridden by Tailwind preflight */
-.vditor svg {
-  display: inline-block !important;
-  max-width: none !important;
+/* Task List */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
 }
 
-/* Fix icon sizes specifically inside the editor toolbar and popups */
-.vditor-toolbar svg,
-.vditor-hint svg,
-.vditor-panel svg {
-    width: auto !important;
-    height: auto !important;
-    max-height: 100%;
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
 }
 
-/* Specific fix for toolbar icons */
-.vditor-toolbar__item svg {
-    width: 16px !important;
-    height: 16px !important;
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-right: 0.75rem;
+  user-select: none;
+  margin-top: 0.15rem;
 }
 
-/* Fix code block copy button */
-.vditor-copy {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 28px !important;
-    height: 28px !important;
-    padding: 6px !important;
-    border-radius: 6px !important;
-    background-color: transparent !important;
-    transition: all 0.2s ease !important;
-    opacity: 0.6;
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
 }
 
-.vditor-copy:hover {
-    opacity: 1;
-    background-color: rgba(0, 0, 0, 0.05) !important;
+/* Images */
+.ProseMirror img {
+  border-radius: 0.5rem;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5rem 0;
+  transition: all 0.2s;
 }
 
-.dark .vditor-copy:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid #3b82f6;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.vditor-copy svg {
-    width: 16px !important;
-    height: 16px !important;
-    display: block !important;
-    color: inherit !important;
+/* Blockquote */
+.ProseMirror blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1.25rem;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #4b5563;
+}
+.dark .ProseMirror blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
 }
 
-/* Ensure toolbar buttons are correctly sized */
-.vditor-toolbar__item {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
+/* Code Blocks */
+.ProseMirror pre {
+  background: #1f2937;
+  color: #e5e7eb;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+}
+.ProseMirror code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  background-color: #f3f4f6;
+  color: #ef4444;
+}
+.dark .ProseMirror code {
+  background-color: #374151;
+  color: #fca5a5;
+}
+.ProseMirror pre code {
+  color: inherit;
+  padding: 0;
+  background: none;
+  font-size: 0.9rem;
 }
 
-/* Fix tooltip/dropdown z-index and styling */
-.vditor-hint,
-.vditor-panel,
-.vditor-tip,
-.vditor-popover {
-    z-index: 9999 !important;
-    position: fixed !important; /* Use fixed to escape any parent overflow */
+/* Links */
+.ProseMirror a {
+  color: #2563eb;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ProseMirror a:hover {
+  text-decoration: underline;
+}
+.dark .ProseMirror a {
+  color: #60a5fa;
 }
 
-/* Fix dropdown menu items */
-.vditor-hint button,
-.vditor-panel button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    padding: 4px 8px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    color: inherit;
+/* Selection */
+.ProseMirror ::selection {
+  background-color: #bfdbfe;
+}
+.dark .ProseMirror ::selection {
+  background-color: #1e3a8a;
 }
 
-.vditor-hint button:hover,
-.vditor-panel button:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+/* Fix Bubble Menu z-index */
+div[data-tippy-root], 
+.tippy-box,
+.bubble-menu-container {
+  z-index: 99999 !important;
 }
-
-/* Dark mode adjustments for popups */
-.dark .vditor-hint,
-.dark .vditor-panel,
-.dark .vditor-tip,
-.dark .vditor-popover {
-    background-color: #1e293b !important; /* slate-800 */
-    border-color: #334155 !important; /* slate-700 */
-    color: #f1f5f9 !important; /* slate-100 */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-}
-
-.dark .vditor-hint button:hover,
-.dark .vditor-panel button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Ensure content within popups is visible */
-.vditor-hint__content,
-.vditor-panel__content {
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-/* Fix for specific dropdown alignment if needed */
-.vditor-toolbar__item .vditor-panel {
-    /* top: 100% !important; */ /* Removed to let Vditor calculate position if possible, or rely on absolute */
-    margin-top: 5px;
-}
-
-/* Fix border radius for Vditor internal container */
-.vditor {
-    border: none !important; /* Let parent handle border */
-    border-radius: 0.75rem !important; /* Match rounded-xl */
-}
-
-.vditor-toolbar {
-    border-top-left-radius: 0.75rem !important;
-    border-top-right-radius: 0.75rem !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    background-color: transparent !important;
-    padding-left: 10px !important; /* Ensure padding matches rounded corners visually */
-    padding-right: 10px !important;
-}
-
-.dark .vditor-toolbar {
-    border-bottom-color: #334155 !important;
-}
-
-.vditor-content {
-    border-bottom-left-radius: 0.75rem !important;
-    border-bottom-right-radius: 0.75rem !important;
-}
-
-/* IMPORTANT: Allow Vditor popups to overflow the editor container */
-/* .vditor-reset {
-    overflow: visible !important;
-} */

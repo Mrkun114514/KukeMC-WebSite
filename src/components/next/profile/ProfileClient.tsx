@@ -104,7 +104,8 @@ interface PlayerDetails {
 interface Message {
   id: number;
   player: string;
-  recipient: string | null;
+  recipient?: string | null;
+  level?: number;
   content: string;
   timestamp: number;
   parent_id: number | null;
@@ -824,7 +825,8 @@ const ProfileClient = () => {
       author: {
         username: msg.player,
         nickname: msg.player,
-        avatar: `https://cravatar.eu/helmavatar/${msg.player}/48.png`
+        avatar: `https://cravatar.eu/helmavatar/${msg.player}/48.png`,
+        level: msg.level
       },
       likes_count: msg.likes,
       is_liked: msg.is_liked,
@@ -1073,10 +1075,10 @@ const ProfileClient = () => {
     );
   }
 
+  // Check ban status
   const isBanned = details.ban_history?.some((ban: any) => ban.active) || false;
 
-  return (
-    <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-24">
+  return <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 pt-24">
       <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Header Profile Card */}
@@ -1132,6 +1134,10 @@ const ProfileClient = () => {
                 <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                   {details.username}
+                  <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-medium flex items-center gap-1.5 align-middle">
+                    <User size={14} />
+                    {profile?.custom_title || '玩家'}
+                  </span>
                   {levelInfo && (
                     <span className={`px-3 py-1 rounded-lg border ${getLevelColor(levelInfo.level).bg} ${getLevelColor(levelInfo.level).border} flex items-center gap-1.5`}>
                       <Star size={16} className={getLevelColor(levelInfo.level).icon} />
@@ -1202,10 +1208,6 @@ const ProfileClient = () => {
               </div>
 
               <div className="flex flex-wrap justify-center md:justify-start gap-3 items-center">
-                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-medium flex items-center gap-1.5">
-                  <User size={14} />
-                  {profile?.custom_title || '玩家'}
-                </span>
                 {details.qq ? (
                    <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium flex items-center gap-1.5">
                      <MessageSquare size={14} />
@@ -1640,7 +1642,7 @@ const ProfileClient = () => {
                       {item.type === 'post' ? (
                         /* Compact Post Card */
                         <Link href={`/activity/${(item.data as Post).id}`} className="block group h-full">
-                          <div className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col relative aspect-square">
+                          <div className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col relative aspect-[4/5]">
                             {/* Type Badge */}
                             <div className="absolute top-2 right-2 z-10">
                                 <span className="px-2 py-1 bg-black/40 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
@@ -1651,7 +1653,7 @@ const ProfileClient = () => {
 
                             {/* Post Image Cover if available */}
                             {(item.data as Post).images && (item.data as Post).images!.length > 0 ? (
-                               <div className="relative h-[60%] overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                               <div className="relative h-[50%] overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
                                  <img 
                                    src={(item.data as Post).images![0]} 
                                    alt={(item.data as Post).title}
@@ -1665,7 +1667,7 @@ const ProfileClient = () => {
                                </div>
                             ) : (
                                /* Text-only Post visual pattern */
-                               <div className="h-[60%] p-4 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 border-b border-slate-100 dark:border-slate-800 flex flex-col justify-center items-center text-center relative overflow-hidden flex-shrink-0">
+                               <div className="h-[50%] p-4 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/20 dark:via-purple-900/20 dark:to-pink-900/20 border-b border-slate-100 dark:border-slate-800 flex flex-col justify-center items-center text-center relative overflow-hidden flex-shrink-0">
                                   <div className="absolute top-0 left-0 w-full h-full opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.05) 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
                                   <MessageSquare size={24} className="text-indigo-400/50 mb-2 relative z-10" />
                                   <h3 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-2 relative z-10 px-2 text-sm">
@@ -1674,8 +1676,8 @@ const ProfileClient = () => {
                                </div>
                             )}
                             
-                            <div className="p-3 flex-1 flex flex-col justify-between overflow-hidden">
-                              <div>
+                            <div className="p-3 flex-1 flex flex-col overflow-hidden">
+                              <div className="flex-1 flex flex-col justify-center">
                                 {/* Show title here only if image post (text post shows title in header) */}
                                 {((item.data as Post).images && (item.data as Post).images!.length > 0) && (
                                   <h3 className="font-bold text-slate-900 dark:text-white mb-1 line-clamp-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-sm">
@@ -1711,8 +1713,8 @@ const ProfileClient = () => {
                         </Link>
                       ) : (
                         /* Album Card - Fixed aspect ratio */
-                        <div className="group relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 cursor-pointer border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all h-full flex flex-col aspect-square" onClick={() => openAlbumDetail(item.data as Album)}>
-                           <div className="relative h-[75%] overflow-hidden flex-shrink-0">
+                        <div className="group relative rounded-xl overflow-hidden bg-white dark:bg-slate-900 cursor-pointer border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all h-full flex flex-col aspect-[4/5]" onClick={() => openAlbumDetail(item.data as Album)}>
+                           <div className="relative h-[50%] overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800">
                              {/* Type Badge */}
                              <div className="absolute top-2 right-2 z-10">
                                 <span className="px-2 py-1 bg-black/40 backdrop-blur-sm text-white text-[10px] rounded-full flex items-center gap-1">
@@ -1730,13 +1732,15 @@ const ProfileClient = () => {
                                 (e.target as HTMLImageElement).src = (item.data as Album).image_url;
                               }}
                             />
-                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                               <h4 className="text-white font-bold text-sm line-clamp-1 mb-1">{(item.data as Album).title}</h4>
-                               <p className="text-slate-200 text-xs line-clamp-2">{(item.data as Album).description}</p>
-                             </div>
                            </div>
-                           {/* Footer for Album to match Post card style */}
-                           <div className="p-3 bg-white dark:bg-slate-900 flex items-center justify-between flex-1 border-t border-slate-100 dark:border-slate-800">
+                           
+                           <div className="p-3 flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900">
+                              <div className="flex-1 flex flex-col justify-center">
+                                 <h4 className="font-bold text-slate-900 dark:text-white mb-1 line-clamp-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors text-sm">{(item.data as Album).title}</h4>
+                                 <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2">{(item.data as Album).description}</p>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 mt-auto">
                               <div className="flex items-center gap-2 min-w-0">
                                  <img 
                                     src={`https://cravatar.eu/helmavatar/${(item.data as any).author?.username || (item.data as Album).username}/24.png`} 
@@ -1755,9 +1759,10 @@ const ProfileClient = () => {
                               </div>
                            </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                     )}
+                   </div>
+                 ))}
                   </>
                 )}
               </div>
@@ -2336,7 +2341,7 @@ const ProfileClient = () => {
         )}
       </AnimatePresence>
     </div>
-  );
+  ;
 };
 
 export default ProfileClient;

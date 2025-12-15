@@ -19,6 +19,7 @@ import MentionInput from './MentionInput';
 import { useCurrentUserLevel } from '../hooks/useCurrentUserLevel';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
+import LevelBadge from './LevelBadge';
 
 interface PostCardProps {
   post: Post;
@@ -77,7 +78,8 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
                     username: commentAuthor.username || 'User',
                     nickname: commentAuthor.nickname || commentAuthor.username || 'User',
                     custom_title: commentAuthor.custom_title,
-                    avatar: commentAuthor.avatar
+                    avatar: commentAuthor.avatar,
+                    level: commentAuthor.level
                 },
                 replies: []
             };
@@ -348,6 +350,7 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
                 <Link to={`/player/${post.author.username}`} className="font-bold text-slate-900 dark:text-white hover:text-emerald-600 transition-colors block">
                   {post.author.nickname || post.author.username}
                 </Link>
+                <LevelBadge level={post.author.level} size="sm" />
                 {post.author.custom_title && post.author.custom_title !== '玩家' && (
                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
                      {post.author.custom_title}
@@ -700,6 +703,7 @@ const CommentItem = ({ comment, onReply }: { comment: Comment, onReply: (comment
             <Link to={`/player/${comment.author.username}`} className="font-bold text-sm text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
               {comment.author.nickname || comment.author.username}
             </Link>
+            <LevelBadge level={comment.author.level} size="sm" />
             {comment.author.custom_title && comment.author.custom_title !== '玩家' && (
                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
                  {comment.author.custom_title}

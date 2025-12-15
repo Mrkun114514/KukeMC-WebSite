@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { 
     ThumbsUp, ThumbsDown, AlertCircle, 
     Shield, User as UserIcon, Loader2, ArrowLeft, Calendar,
-    BarChart2, Lock
+    BarChart2, Lock, ClipboardCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 import ReactMarkdown from 'react-markdown';
@@ -42,7 +42,9 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
     if (!proposal?.recent_votes) return [];
     return proposal.recent_votes.map(vote => ({
       id: vote.id,
-      content: `**[${vote.vote_type === 'agree' ? '支持' : '反对'}]** ${vote.reason || ''}`,
+      content: (proposal.type === 'discussion' || vote.vote_type === 'neutral')
+          ? (vote.reason || '')
+          : `**[${vote.vote_type === 'agree' ? '支持' : '反对'}]** ${vote.reason || ''}`,
       created_at: vote.updated_at,
       author: {
           username: vote.username,
@@ -143,7 +145,10 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!voteType || !proposal) return;
+    if (!proposal) return;
+
+    const typeToSend = isDiscussion ? 'neutral' : voteType;
+    if (!isDiscussion && !typeToSend) return;
 
     if (proposal.min_level > 0 && (userLevel === null || userLevel < proposal.min_level)) {
         setVoteError(`需要等级达到 Lv.${proposal.min_level} 才能参与`);
@@ -156,7 +161,7 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
     try {
       await submitVote({
         proposal_id: proposal.id,
-        vote_type: voteType,
+        vote_type: typeToSend!,
         reason: reason,
         is_anonymous: isAnonymous
       });
@@ -199,6 +204,7 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
   const disagreePercent = totalVotes > 0 ? (proposal.stats.disagree / totalVotes) * 100 : 0;
   const isEnded = proposal.end_time ? new Date(proposal.end_time) < new Date() : false;
   const isActive = proposal.is_active && !isEnded;
+  const isDiscussion = proposal.type === 'discussion';
 
   return (
     <motion.div 
@@ -287,50 +293,57 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                             <BarChart2 className="w-5 h-5 text-blue-500" />
-                            投票统计
+                            {isDiscussion ? "讨论统计" : "投票统计"}
                         </h3>
                         
                         <div className="space-y-6">
-                            {/* Agree Bar */}
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span className="font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
-                                        <ThumbsUp className="w-4 h-4" /> 支持
-                                    </span>
-                                    <span className="font-bold text-slate-900 dark:text-white">{agreePercent.toFixed(1)}%</span>
-                                </div>
-                                <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                    <motion.div 
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${agreePercent}%` }}
-                                        className="h-full bg-green-500 rounded-full"
-                                    />
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">{proposal.stats.agree} 票</div>
-                            </div>
+                            {!isDiscussion && (
+                                <>
+                                    {/* Agree Bar */}
+                                    <div>
+                                        <div className="flex justify-between text-sm mb-2">
+                                            <span className="font-medium text-green-600 dark:text-green-400 flex items-center gap-1">
+                                                <ThumbsUp className="w-4 h-4" /> 支持
+                                            </span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{agreePercent.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${agreePercent}%` }}
+                                                className="h-full bg-green-500 rounded-full"
+                                            />
+                                        </div>
+                                        <div className="text-xs text-slate-500 mt-1">{proposal.stats.agree} 票</div>
+                                    </div>
 
-                            {/* Disagree Bar */}
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span className="font-medium text-red-600 dark:text-red-400 flex items-center gap-1">
-                                        <ThumbsDown className="w-4 h-4" /> 反对
-                                    </span>
-                                    <span className="font-bold text-slate-900 dark:text-white">{disagreePercent.toFixed(1)}%</span>
-                                </div>
-                                <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                    <motion.div 
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${disagreePercent}%` }}
-                                        className="h-full bg-red-500 rounded-full"
-                                    />
-                                </div>
-                                <div className="text-xs text-slate-500 mt-1">{proposal.stats.disagree} 票</div>
-                            </div>
+                                    {/* Disagree Bar */}
+                                    <div>
+                                        <div className="flex justify-between text-sm mb-2">
+                                            <span className="font-medium text-red-600 dark:text-red-400 flex items-center gap-1">
+                                                <ThumbsDown className="w-4 h-4" /> 反对
+                                            </span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{disagreePercent.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${disagreePercent}%` }}
+                                                className="h-full bg-red-500 rounded-full"
+                                            />
+                                        </div>
+                                        <div className="text-xs text-slate-500 mt-1">{proposal.stats.disagree} 票</div>
+                                    </div>
+                                </>
+                            )}
 
-                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4 text-center">
+                            <div className={clsx(
+                                "grid grid-cols-2 gap-4 text-center",
+                                !isDiscussion && "pt-6 border-t border-slate-100 dark:border-slate-800"
+                            )}>
                                 <div>
                                     <div className="text-2xl font-bold text-slate-900 dark:text-white">{totalVotes}</div>
-                                    <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">总票数</div>
+                                    <div className="text-xs text-slate-500 uppercase tracking-wider mt-1">{isDiscussion ? "参与人数" : "总票数"}</div>
                                 </div>
                                 <div>
                                     <div className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -350,12 +363,17 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
                             <div className="text-center py-4">
                                 <div className={clsx(
                                     "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl",
-                                    proposal.my_vote.vote_type === 'agree' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                                    isDiscussion 
+                                        ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                                        : proposal.my_vote.vote_type === 'agree' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
                                 )}>
-                                    {proposal.my_vote.vote_type === 'agree' ? <ThumbsUp className="w-8 h-8" /> : <ThumbsDown className="w-8 h-8" />}
+                                    {isDiscussion 
+                                        ? <ClipboardCheck className="w-8 h-8" /> 
+                                        : proposal.my_vote.vote_type === 'agree' ? <ThumbsUp className="w-8 h-8" /> : <ThumbsDown className="w-8 h-8" />
+                                    }
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                                    你已投 {proposal.my_vote.vote_type === 'agree' ? "支持" : "反对"} 票
+                                    {isDiscussion ? "你已参与讨论" : `你已投 ${proposal.my_vote.vote_type === 'agree' ? "支持" : "反对"} 票`}
                                 </h3>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                                     感谢你的参与！
@@ -366,14 +384,14 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
                                         onClick={() => setIsEditingVote(true)}
                                         className="text-blue-600 hover:text-blue-700 text-sm font-medium hover:underline"
                                     >
-                                        修改我的投票
+                                        {isDiscussion ? "修改我的观点" : "修改我的投票"}
                                     </button>
                                 )}
                             </div>
                         ) : (
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
-                                    {isEditingVote ? "修改投票" : "参与投票"}
+                                    {isEditingVote ? (isDiscussion ? "修改观点" : "修改投票") : (isDiscussion ? "参与讨论" : "参与投票")}
                                 </h3>
                                 
                                 {!isLevelSufficient ? (
@@ -388,39 +406,41 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
                                     </div>
                                 ) : isActive ? (
                                     <form onSubmit={handleSubmit} className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => setVoteType('agree')}
-                                                className={clsx(
-                                                    "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all",
-                                                    voteType === 'agree'
-                                                        ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                                                        : "border-slate-200 hover:border-green-200 dark:border-slate-700 dark:hover:border-green-900"
-                                                )}
-                                            >
-                                                <ThumbsUp className={clsx("w-6 h-6", voteType === 'agree' && "fill-current")} />
-                                                <span className="font-bold">支持</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setVoteType('disagree')}
-                                                className={clsx(
-                                                    "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all",
-                                                    voteType === 'disagree'
-                                                        ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                                                        : "border-slate-200 hover:border-red-200 dark:border-slate-700 dark:hover:border-red-900"
-                                                )}
-                                            >
-                                                <ThumbsDown className={clsx("w-6 h-6", voteType === 'disagree' && "fill-current")} />
-                                                <span className="font-bold">反对</span>
-                                            </button>
-                                        </div>
+                                        {!isDiscussion && (
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setVoteType('agree')}
+                                                    className={clsx(
+                                                        "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all",
+                                                        voteType === 'agree'
+                                                            ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                                                            : "border-slate-200 hover:border-green-200 dark:border-slate-700 dark:hover:border-green-900"
+                                                    )}
+                                                >
+                                                    <ThumbsUp className={clsx("w-6 h-6", voteType === 'agree' && "fill-current")} />
+                                                    <span className="font-bold">支持</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setVoteType('disagree')}
+                                                    className={clsx(
+                                                        "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all",
+                                                        voteType === 'disagree'
+                                                            ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                                                            : "border-slate-200 hover:border-red-200 dark:border-slate-700 dark:hover:border-red-900"
+                                                    )}
+                                                >
+                                                    <ThumbsDown className={clsx("w-6 h-6", voteType === 'disagree' && "fill-current")} />
+                                                    <span className="font-bold">反对</span>
+                                                </button>
+                                            </div>
+                                        )}
 
                                         <textarea
                                             value={reason}
                                             onChange={(e) => setReason(e.target.value)}
-                                            placeholder="说说你的理由... (推荐填写)"
+                                            placeholder={isDiscussion ? "发表你的看法..." : "说说你的理由... (推荐填写)"}
                                             className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none h-24 text-sm"
                                             maxLength={500}
                                         />
@@ -433,22 +453,22 @@ const ProposalDetailClient = ({ initialId }: { initialId: number }) => {
                                                     onChange={(e) => setIsAnonymous(e.target.checked)}
                                                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 w-4 h-4"
                                                 />
-                                                <span className="text-sm text-slate-600 dark:text-slate-400">匿名投票</span>
+                                                <span className="text-sm text-slate-600 dark:text-slate-400">匿名{isDiscussion ? "参与" : "投票"}</span>
                                             </label>
                                         </div>
 
                                         <button
                                             type="submit"
-                                            disabled={isSubmitting || !voteType}
+                                            disabled={isSubmitting || (!isDiscussion && !voteType)}
                                             className={clsx(
                                                 "w-full py-3 rounded-xl font-bold text-white transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2",
-                                                voteType
+                                                (isDiscussion || voteType)
                                                     ? "bg-blue-600 hover:bg-blue-700 active:scale-95"
                                                     : "bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500 dark:text-slate-500 shadow-none"
                                             )}
                                         >
                                             {isSubmitting && <Loader2 className="w-5 h-5 animate-spin" />}
-                                            {isEditingVote ? "更新投票" : "提交投票"}
+                                            {isEditingVote ? "更新" : "提交"}
                                         </button>
 
                                         {isEditingVote && (

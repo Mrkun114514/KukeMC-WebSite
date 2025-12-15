@@ -2,8 +2,7 @@
 
 import { useState, forwardRef } from 'react';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownViewer from '@/components/MarkdownViewer';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Heart, MessageSquare, Bookmark, Share2, Trash2, Check, Edit2, Send, X, Loader2, Eye } from 'lucide-react';
@@ -21,6 +20,7 @@ import MentionInput from './MentionInput';
 import { useCurrentUserLevel } from '@/hooks/useCurrentUserLevel';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/context/ConfirmContext';
+import LevelBadge from '@/components/LevelBadge';
 
 interface PostCardProps {
   post: Post;
@@ -347,9 +347,10 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <Link href={`/player/${post.author.username}`} className="font-bold text-slate-900 dark:text-white hover:text-emerald-600 transition-colors block">
+                <Link href={`/player/${post.author.username}`} className="font-bold text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
                   {post.author.nickname || post.author.username}
                 </Link>
+                <LevelBadge level={post.author.level} size="sm" />
                 {post.author.custom_title && post.author.custom_title !== '玩家' && (
                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
                      {post.author.custom_title}
@@ -426,25 +427,25 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
         ) : (
         <Link href={`/activity/${post.id}`} className={clsx("block group", isDetail && "pointer-events-none")}>
           <div className="mb-4">
-            <h3 className={clsx("font-bold text-slate-900 dark:text-white mb-2 transition-colors", isDetail ? "text-2xl" : "text-xl group-hover:text-emerald-600 dark:group-hover:text-emerald-400")}>
+            <h3 className={clsx("font-bold text-slate-900 dark:text-white mb-2 transition-colors", isDetail ? "text-2xl" : "text-xl group-hover:text-emerald-600 dark:group-hover:text-emerald-400 line-clamp-1")}>
               {post.title}
             </h3>
             
             {/* Images Grid */}
-            {post.images && post.images.length > 0 && (
+            {!isDetail && post.images && post.images.length > 0 && (
               <div className={clsx("grid gap-2 mb-4", 
                 post.images.length === 1 ? "grid-cols-1" : 
                 post.images.length === 2 ? "grid-cols-2" : 
                 "grid-cols-3"
               )}>
-                {post.images.slice(0, isDetail ? undefined : 3).map((img, idx) => (
+                {post.images.slice(0, 3).map((img, idx) => (
                   <div key={idx} className={clsx("relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 aspect-video", post.images!.length === 1 && "aspect-[2/1]")}>
                     <img 
                       src={img} 
                       alt={`Image ${idx + 1}`} 
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
-                    {!isDetail && idx === 2 && post.images!.length > 3 && (
+                    {idx === 2 && post.images!.length > 3 && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl backdrop-blur-sm">
                         +{post.images!.length - 3}
                       </div>
@@ -459,19 +460,11 @@ const PostCard = forwardRef<HTMLDivElement, PostCardProps>(({ post, onUpdate, on
               (isDetail || isExpanded) ? "prose-base" : "prose-sm line-clamp-6",
               "prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0"
             )}>
-               <ReactMarkdown 
-                 remarkPlugins={[remarkGfm]}
-                 components={{
-                   a: ({node, ...props}) => (
-                     <Link href={props.href || '#'} className="text-emerald-500 hover:underline" onClick={(e) => e.stopPropagation()}>
-                       {props.children}
-                     </Link>
-                   ),
-                   img: () => null
-                 }}
-               >
-                 {(isDetail || isExpanded) ? processedContent : processedContent.slice(0, 300) + (processedContent.length > 300 ? '...' : '')}
-               </ReactMarkdown>
+               <MarkdownViewer 
+                 content={(isDetail || isExpanded) ? processedContent : processedContent.slice(0, 300) + (processedContent.length > 300 ? '...' : '')}
+                 className="!p-0 !min-h-0"
+                 disableImages={!isDetail && post.images && post.images.length > 0}
+               />
             </div>
           </div>
         </Link>
@@ -708,6 +701,7 @@ const CommentItem = ({ comment, onReply }: { comment: Comment, onReply: (comment
             <Link href={`/player/${comment.author.username}`} className="font-bold text-sm text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
               {comment.author.nickname || comment.author.username}
             </Link>
+            <LevelBadge level={comment.author.level} size="sm" />
             {comment.author.custom_title && comment.author.custom_title !== '玩家' && (
                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
                  {comment.author.custom_title}

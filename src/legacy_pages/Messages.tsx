@@ -12,11 +12,13 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
+import LevelBadge from '../components/LevelBadge';
 
 interface Message {
   id: number;
   player: string;
   recipient?: string | null;
+  level?: number;
   content: string;
   timestamp: number;
   parent_id: number | null;
@@ -121,6 +123,7 @@ const MessageCard = ({
                 <Link to={`/player/${msg.player}`} className="font-bold text-base text-slate-800 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-300 hover:underline">
                   {msg.player}
                 </Link>
+                <LevelBadge level={msg.level} size="sm" />
                 <span className="text-xs font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                   #{msg.id}
                 </span>

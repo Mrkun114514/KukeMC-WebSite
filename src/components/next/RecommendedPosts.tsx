@@ -67,15 +67,15 @@ const RecommendedPosts: React.FC<RecommendedPostsProps> = ({ currentPostId, tags
             >
               <div className="flex gap-3">
                 {post.images && post.images.length > 0 && (
-                   <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-900">
+                   <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-900">
                      <img src={post.images[0]} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                    </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200 line-clamp-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                     {post.title || post.content.substring(0, 30)}
                   </h4>
-                  <div className="text-xs text-slate-400 mt-1">
+                  <div className="text-xs text-slate-400 mt-0.5">
                     {post.author.nickname || post.author.username}
                   </div>
                 </div>

@@ -4,6 +4,7 @@ export interface Author {
   nickname?: string;
   custom_title?: string;
   is_following?: boolean;
+  level?: number;
 }
 
 export interface Post {

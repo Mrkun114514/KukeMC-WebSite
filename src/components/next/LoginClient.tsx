@@ -277,20 +277,26 @@ const LoginClient = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="mb-8 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
+                        className="mb-8 relative overflow-hidden rounded-2xl border border-blue-100 dark:border-blue-800/50 bg-gradient-to-br from-blue-50/50 to-white/50 dark:from-blue-900/10 dark:to-slate-900/50 p-5"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300">
-                            <MessageCircle size={20} />
+                        {/* Decorative background element */}
+                        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
+                        
+                        <div className="relative flex items-center gap-4">
+                          <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100/80 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-200/50 dark:ring-blue-500/20">
+                            <MessageCircle size={22} className="fill-current opacity-80" />
                           </div>
-                          <div className="text-left">
-                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">
-                              QQ 群验证可用
-                            </h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                              检测到您绑定的 QQ ({maskedQQ})。
-                              <br />
-                              您也可以在 QQ 群中发送 <code className="px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 font-mono">/login {code}</code> 进行验证。
+                          
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2 mb-1">
+                               <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                                  QQ 群验证可用
+                               </h4>
+                            </div>
+                            
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                              检测到您绑定的 QQ <span className="font-mono text-slate-700 dark:text-slate-300 font-medium mx-0.5">({maskedQQ})</span>。
+                              您也可以直接在 QQ 群内发送上方指令完成验证。
                             </p>
                           </div>
                         </div>

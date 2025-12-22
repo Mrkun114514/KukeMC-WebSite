@@ -82,7 +82,7 @@ src/
 
 ## 🤝 贡献指南
 
-欢迎提交 Issue 或 Pull Request 来改进这个项目。在提交代码前，请确保通过了 Lint 检查。
+欢迎各位提交 Issue 或 Pull Request 来改进这个项目。在提交代码前，请确保通过了 Lint 检查。
 
 ```bash
 npm run lint
